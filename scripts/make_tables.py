@@ -1,0 +1,196 @@
+"""Generate the paper's LaTeX tables from results/*.csv -> paper/tables/*.tex.
+
+Never hand-edit numbers in the paper: re-run eval_all.py, significance.py, truncation_stats.py,
+then this script.
+"""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import numpy as np
+import pandas as pd
+
+from choicerank import RESULTS_DIR, ROOT, RUNS_DIR
+from choicerank.data import BEIR8, CALIB, DL
+
+OUT = ROOT / "paper" / "tables"
+HEAD = {"dl19": "DL19", "dl20": "DL20", "dl21": "DL21", "dl22": "DL22", "dl23": "DL23", "trec-covid": "Covid",
+        "nfcorpus": "NFC", "touche": "Touche", "dbpedia": "DBP", "scifact": "SciF", "signal": "Signal",
+        "news": "News", "robust04": "Rob04"}
+LONG = ["touche", "news", "robust04"]
+
+GROUPS = [
+    ("", [("bm25", "BM25 (first stage)")]),
+    ("Cross-encoders", [("minilm", "MiniLM-L6 (22M)"), ("bge-m3", "bge-reranker-v2-m3 (568M)")]),
+    ("Label-probability LLM rerankers", [("qwen3-reranker-0.6B", "Qwen3-Reranker-0.6B"),
+                                         ("qwen235-yesno", "Qwen3-235B, P(yes)")]),
+    ("Laya (421M)", [("laya-choice3", "\\quad Choice-3"), ("laya-noul", "\\quad Noul"), ("laya-score4", "\\quad Score-4")]),
+    ("Jeff (0.8B)", [("jeff-0.8b-choice3", "\\quad Choice-3"), ("jeff-0.8b-noul", "\\quad Noul"),
+                     ("jeff-0.8b-score4", "\\quad Score-4")]),
+    ("Clef 27B (open weights, API; 7 collections)", [("clef-choice3", "\\quad Choice-3"), ("clef-noul", "\\quad Noul"),
+                                                     ("clef-score4", "\\quad Score-4")]),
+    ("Jev 1.13 (API)", [("jev-choice3", "\\quad Choice-3"), ("jev-noul", "\\quad Noul"), ("jev-score4", "\\quad Score-4")]),
+]
+
+
+def ranking_table(rank: pd.DataFrame, sig: pd.DataFrame) -> str:
+    p = rank.pivot(index="system", columns="dataset", values="nDCG@10")
+    # Averages only over complete collection sets: subset systems (Clef, Qwen3-235B) get "--" (no subset means)
+    p["dlavg"] = p[DL].mean(axis=1, skipna=False)
+    p["beiravg"] = p[BEIR8].mean(axis=1, skipna=False)
+    p["all"] = p[DL + BEIR8].mean(axis=1, skipna=False)
+    cols = DL + ["dlavg"] + BEIR8 + ["beiravg", "all"]
+    groups = [(g, [(s, l) for s, l in rows if s in p.index]) for g, rows in GROUPS]
+    groups = [(g, rows) for g, rows in groups if rows]  # optional baselines appear once their runs exist
+    systems = [s for _, rows in groups for s, _ in rows]
+    best = {c: p.loc[systems, c].max() for c in cols}
+    s_bge = sig[sig.B == "bge-m3"].set_index(["A", "dataset"])
+    head = [HEAD[c] if c in HEAD else {"dlavg": r"\textit{Avg}", "beiravg": r"\textit{Avg}", "all": r"\textbf{All}"}[c]
+            for c in cols]
+    lines = [r"\begin{table*}[t]", r"\centering", r"\footnotesize", r"\setlength{\tabcolsep}{2.6pt}",
+             r"\caption{nDCG@10 for reranking the BM25 top-100 (Pyserini runs and qrels, as in RankGPT/RankLLM). "
+             r"$^\uparrow$/$^\downarrow$: significantly better/worse than bge-reranker-v2-m3 (paired $t$-test over queries, "
+             r"Holm-corrected over the collections each pair was evaluated on, $p<0.05$). Best per column in bold. "
+             r"Averages are reported only for systems run on every collection of the group (dash otherwise); "
+             r"matched comparisons for Clef and Qwen3-235B are given in the text. "
+             r"Touche, News and Robust04 contain long documents that every model truncates (Table~\ref{tab:longdoc}).}",
+             r"\label{tab:ranking}",
+             r"\begin{tabular}{l" + "r" * 5 + "|r|" + "r" * 8 + "|r|r}", r"\toprule",
+             r" & \multicolumn{6}{c|}{TREC Deep Learning} & \multicolumn{9}{c|}{BEIR} & \\",
+             "System & " + " & ".join(head) + r" \\", r"\midrule"]
+    for gi, (gname, rows) in enumerate(groups):
+        if gname:
+            lines.append(rf"\multicolumn{{{len(cols) + 1}}}{{l}}{{\textit{{{gname}}}}} \\")
+        for sysname, label in rows:
+            cells = []
+            for c in cols:
+                v = p.loc[sysname, c]
+                if np.isnan(v):  # system not run on this collection (or average undefined)
+                    cells.append("--")
+                    continue
+                txt = f"{v:.1f}"
+                if abs(v - best[c]) < 1e-9:
+                    txt = rf"\textbf{{{txt}}}"
+                if (sysname, c) in s_bge.index:
+                    r = s_bge.loc[(sysname, c)]
+                    if r.p_holm < 0.05:
+                        txt += r"$^\uparrow$" if r.delta > 0 else r"$^\downarrow$"
+                cells.append(txt)
+            lines.append(f"{label} & " + " & ".join(cells) + r" \\")
+        if gi < len(groups) - 1:
+            lines.append(r"\addlinespace[1pt]")
+    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table*}"]
+    return "\n".join(lines)
+
+
+def calibration_table(cal: pd.DataFrame, transfer: pd.DataFrame | None = None) -> str:
+    """Raw ECE, transfer-calibrated ECE (Platt fit on the OTHER collections: no target labels), in-collection Platt
+    (2-fold query cross-fit; needs target labels), Brier, mean prediction, latency, cost."""
+    rows = [("minilm", "MiniLM-L6"), ("bge-m3", "bge-v2-m3"), ("qwen3-reranker-0.6B", "Qwen3-Rer.-0.6B"),
+            ("qwen235-yesno", "Qwen3-235B P(yes)$^\\ast$"),
+            ("laya-choice3", "Laya C3"), ("laya-noul", "Laya Noul"), ("jeff-0.8b-choice3", "Jeff C3"),
+            ("jeff-0.8b-noul", "Jeff Noul"), ("clef-choice3", "Clef C3$^\\ast$"), ("clef-noul", "Clef Noul$^\\ast$"),
+            ("clef-score4", "Clef S4$^\\ast$"), ("jev-choice3", "Jev C3"), ("jev-noul", "Jev Noul"), ("jev-score4", "Jev S4")]
+    d = cal[cal.dataset.isin(CALIB)].groupby("system")
+    agg = pd.DataFrame({"ECE": d.ECE.mean(), "Brier": d.Brier.mean(), "ECE_Platt": d.ECE_Platt.mean(),
+                        "mean_p": d.mean_p.mean(), "base": d.base_rate.mean()})
+    if transfer is not None:
+        agg["ECE_LOCO"] = transfer.groupby("system").ECE_LOCO.mean()
+    allc = cal[cal.dataset.isin(DL + BEIR8)].groupby("system")
+    agg["lat"], agg["lat95"], agg["usd"] = allc.lat_p50_ms.median(), allc.lat_p95_ms.median(), allc.usd_per_1k_q.mean()
+    rows = [(k, l) for k, l in rows if k in agg.index]
+    full = [r for r, _ in rows if cal[(cal.system == r) & cal.dataset.isin(CALIB)].dataset.nunique() == len(CALIB)]
+    best = {c: agg.loc[full, c].min() for c in ["ECE", "ECE_LOCO", "Brier", "ECE_Platt"] if c in agg}  # no bold for subsets
+    lines = [r"\begin{table}[t]", r"\centering", r"\footnotesize", r"\setlength{\tabcolsep}{2pt}",
+             r"\caption{Calibration of $P(\text{relevant})$ on the nine collections with judged negatives "
+             r"(DL19--23, TREC-COVID, DBPedia, News, Robust04; mean over collections, ECE$\times$100, 15 bins, judged pairs only). "
+             r"Raw: no recalibration. Transfer: Platt scaling fit on the other eight collections (no target labels). "
+             r"In-coll.: Platt with 2-fold query-level cross-fitting on the target collection (needs target labels). "
+             r"C3/S4: Choice-3/Score-4 readout. $^\ast$Seven of the nine collections (no DBPedia, News). "
+             r"Latency: median over collections of per-pair p50/p95 (local models on a laptop RTX 4060; Jeff with reference "
+             r"attention kernels; API models with 8--24 concurrent requests). Cost: USD per 1k queries at 100 passages.}",
+             r"\label{tab:calibration}",
+             r"\begin{tabular}{lrrrrrrr}", r"\toprule",
+             r" & \multicolumn{3}{c}{ECE} & & & & \\ \cmidrule(lr){2-4}",
+             r"System & Raw & Transfer & In-coll. & Brier & $\bar{p}$ & ms p50/p95 & \$/1kQ \\", r"\midrule"]
+    lat = lambda v: "--" if pd.isna(v) else (f"{v:.1f}" if v < 10 else f"{v:.0f}")
+    for key, label in rows:
+        r = agg.loc[key]
+
+        def fmt(c, f):
+            v = r.get(c, np.nan)
+            if pd.isna(v):
+                return "--"
+            t = f.format(v)
+            return rf"\textbf{{{t}}}" if key in full and c in best and abs(v - best[c]) < 1e-9 else t
+        usd = "0" if not r.usd else f"{r.usd:.2f}"
+        lines.append(f"{label} & {fmt('ECE', '{:.1f}')} & {fmt('ECE_LOCO', '{:.1f}')} & {fmt('ECE_Platt', '{:.1f}')} & "
+                     f"{fmt('Brier', '{:.3f}')} & {r.mean_p:.2f} & {lat(r.lat)}/{lat(r.lat95)} & {usd} \\\\")
+    base = agg.loc["bge-m3", "base"]
+    lines += [r"\midrule", rf"\multicolumn{{8}}{{l}}{{\footnotesize Base rate of relevance (mean over the nine collections): {base:.2f}}} \\",
+              r"\bottomrule", r"\end{tabular}", r"\end{table}"]
+    return "\n".join(lines)
+
+
+def longdoc_table(rank: pd.DataFrame, trunc: pd.DataFrame) -> str:
+    """Truncation rates and the equal-budget ablation on the long-document collections."""
+    from scipy import stats
+
+    from choicerank.data import load_qrels
+    from choicerank.evaluate import per_query
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from eval_all import read_trec
+
+    p = rank.pivot(index="system", columns="dataset", values="nDCG@10")
+    t = trunc.set_index("dataset")
+    get = lambda s, ds: f"{p.loc[s, ds]:.1f}" if s in p.index and ds in p.columns and not np.isnan(p.loc[s, ds]) else "--"
+    lines = [r"\begin{table}[t]", r"\centering", r"\small", r"\setlength{\tabcolsep}{3pt}",
+             r"\caption{Long-document collections. Top: share of candidate passages longer than each model's passage budget "
+             r"(XLM-R tokens; Laya English $\approx$320, cross-encoders 448 at a 512 window, bge at 2{,}048 tokens, Jev/Jeff 4{,}000 characters). "
+             r"Bottom: nDCG@10 with each model's own window and with every passage cut to the same first 448 tokens (``=448''). "
+             r"$\Delta$: Jev Score-4 minus bge at equal budget (paired $t$-test).}",
+             r"\label{tab:longdoc}",
+             r"\begin{tabular}{lrrr}", r"\toprule", r" & Touche & News & Robust04 \\", r"\midrule",
+             r"\multicolumn{4}{l}{\textit{Passages truncated (\%)}} \\"]
+    for col, lab in [("pct_over_320", r"\quad Laya ($>$320 tok)"), ("pct_over_448", r"\quad cross-enc.\ ($>$448 tok)"),
+                     ("pct_over_2000", r"\quad bge-2048 ($>$2{,}000 tok)"), ("pct_over_4000ch", r"\quad Jev/Jeff ($>$4k chars)")]:
+        lines.append(lab + " & " + " & ".join(f"{t.loc[d, col]:.0f}" for d in LONG) + r" \\")
+    lines += [r"\midrule", r"\multicolumn{4}{l}{\textit{nDCG@10}} \\"]
+    for s, lab in [("bm25", r"\quad BM25"), ("minilm", r"\quad MiniLM (512)"), ("minilm-p448", r"\quad MiniLM (=448)"),
+                   ("bge-m3", r"\quad bge (512)"), ("bge-m3-p448", r"\quad bge (=448)"), ("bge-m3-2048", r"\quad bge (2{,}048)"),
+                   ("jev-score4", r"\quad Jev S4 (4k chars)"), ("jev-p448-score4", r"\quad Jev S4 (=448)")]:
+        lines.append(lab + " & " + " & ".join(get(s, d) for d in LONG) + r" \\")
+    deltas = []
+    for d in LONG:
+        q = load_qrels(d)
+        J = per_query(read_trec(RUNS_DIR / f"{d}.top100.jev-p448-score4.trec"), q)
+        B = per_query(read_trec(RUNS_DIR / f"{d}.top100.bge-m3-p448.trec"), q)
+        ks = sorted(set(J) & set(B))
+        diff = 100 * np.mean([J[k] - B[k] for k in ks])
+        pv = stats.ttest_rel([J[k] for k in ks], [B[k] for k in ks]).pvalue
+        deltas.append(f"{diff:+.1f}" + ("$^{*}$" if pv < 0.05 else ""))
+    lines += [r"\midrule", r"$\Delta$ Jev$-$bge (=448) & " + " & ".join(deltas) + r" \\",
+              r"\bottomrule", r"\end{tabular}", r"\end{table}"]
+    return "\n".join(lines)
+
+
+def main():
+    OUT.mkdir(parents=True, exist_ok=True)
+    rank = pd.read_csv(RESULTS_DIR / "ranking.csv")
+    cal = pd.read_csv(RESULTS_DIR / "calibration.csv")
+    sig = pd.read_csv(RESULTS_DIR / "significance.csv")
+    trunc = pd.read_csv(RESULTS_DIR / "truncation.csv")
+    (OUT / "ranking.tex").write_text(ranking_table(rank, sig), encoding="utf-8")
+    tr = RESULTS_DIR / "calib_transfer.csv"
+    (OUT / "calibration.tex").write_text(calibration_table(cal, pd.read_csv(tr) if tr.exists() else None), encoding="utf-8")
+    (OUT / "longdoc.tex").write_text(longdoc_table(rank, trunc), encoding="utf-8")
+    print("wrote", *sorted(p.name for p in OUT.glob("*.tex")))
+
+
+if __name__ == "__main__":
+    main()

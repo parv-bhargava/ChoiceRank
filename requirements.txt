@@ -1,0 +1,17 @@
+# Python 3.12 venv recommended (outside OneDrive):  py -3.12 -m venv %USERPROFILE%\.venvs\choicerank
+# CPU torch first:  pip install torch --index-url https://download.pytorch.org/whl/cpu
+torch>=2.4
+sentence-transformers>=6.0
+ir_datasets>=0.6
+ir_measures>=0.4
+bm25s>=0.3
+laya>=0.3.26
+numpy
+scipy
+pandas
+pyarrow
+matplotlib
+httpx
+python-dotenv
+tqdm
+truststore   # use Windows cert store (fixes TLS errors behind AV/proxy inspection)
