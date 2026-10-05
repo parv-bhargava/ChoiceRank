@@ -68,3 +68,7 @@ typing_extensions==4.16.0
 tzdata==2026.5
 urllib3==2.8.0
 uv==0.12.23
+accelerate==1.15.0
+bitsandbytes==0.50.2
+sentencepiece==0.2.2
+tiktoken==0.14.0
