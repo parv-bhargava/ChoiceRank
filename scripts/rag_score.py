@@ -5,11 +5,17 @@
   python scripts/rag_score.py --model jev --dataset musique --split calib pilot --i-approve-spend --max-usd 0.5
 
 Decision models are asked all three formats in one call (qtype=all); the parquet keeps every readout.
+
+--mask-answers (review feedback): replace every gold answer string (and alias) in passage titles and texts with
+"[MASKED]" before scoring, to test whether a ranker's preference for the answer-bearing hop depends on recognising the
+answer. Output: {dataset}.{split}.{model}-masked.parquet; cached under a separate judge id.
 """
 
 from __future__ import annotations
 
 import argparse
+import copy
+import re
 import sys
 from pathlib import Path
 
@@ -36,7 +42,10 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--i-approve-spend", action="store_true")
     ap.add_argument("--max-usd", type=float, default=0.5)
+    ap.add_argument("--mask-answers", action="store_true")
     args = ap.parse_args()
+    items_of = (lambda d, sp: [mask_answers(it) for it in load_split(d, sp)]) if args.mask_answers else load_split
+    tag = args.model + ("-masked" if args.mask_answers else "")
     paid = args.model in PAID
     decision = args.model not in ("minilm",) and not args.model.startswith("bge-m3")
     qtype = "all" if decision else "choice3"
@@ -45,7 +54,7 @@ def main():
         from choicerank.cost import estimate
 
         for split in args.split:
-            print(split, estimate([it.as_query() for it in load_split(args.dataset, split)], args.model, qtype))
+            print(split, estimate([it.as_query() for it in items_of(args.dataset, split)], args.model, qtype))
         if paid and not args.dry_run:
             print("Paid model: re-run with --i-approve-spend --max-usd N")
         return
@@ -53,11 +62,13 @@ def main():
     from choicerank.judges import JudgeCache, make_judge
 
     judge, cache = make_judge(args.model, qtype), JudgeCache()
+    if args.mask_answers:
+        judge.id_suffix = (getattr(judge, "id_suffix", "") or "") + "@mask"
     OUT.mkdir(parents=True, exist_ok=True)
     spent = 0.0
     for split in args.split:
         rows = []
-        for it in tqdm(load_split(args.dataset, split), desc=f"{args.dataset}.{split}.{args.model}"):
+        for it in tqdm(items_of(args.dataset, split), desc=f"{args.dataset}.{split}.{tag}"):
             res, new = judge.judge_query(it.as_query(), cache)
             for rank_in, p in enumerate(it.passages):
                 j = res[p.pid]
@@ -73,10 +84,24 @@ def main():
             if paid and spent > args.max_usd:
                 print(f"STOP: spend ${spent:.3f} exceeded --max-usd {args.max_usd}")
                 break
-        pd.DataFrame(rows).to_parquet(OUT / f"{args.dataset}.{split}.{args.model}.parquet", index=False)
-        print(f"{args.dataset}.{split}.{args.model}: {len(rows)} passages, cumulative ${spent:.4f}")
+        pd.DataFrame(rows).to_parquet(OUT / f"{args.dataset}.{split}.{tag}.parquet", index=False)
+        print(f"{args.dataset}.{split}.{tag}: {len(rows)} passages, cumulative ${spent:.4f}")
         if paid and spent > args.max_usd:
             break
+
+
+def mask_answers(item):
+    """Copy of a RagItem with every answer string (and alias) replaced by [MASKED] in titles and texts.
+    Matching is case-insensitive and tolerant of punctuation/whitespace between the answer's words (as in SQuAD
+    normalisation), longest answers first."""
+    it = copy.deepcopy(item)
+    toks = sorted({tuple(re.findall(r"\w+", a.lower())) for a in item.answers} - {()}, key=lambda t: -sum(map(len, t)))
+    if toks:
+        alt = "|".join(r"[^\w]*".join(re.escape(w) for w in t) for t in toks)
+        rx = re.compile(r"(?<!\w)(?:" + alt + r")(?!\w)", re.IGNORECASE)
+        for p in it.passages:
+            p.title, p.text = rx.sub("[MASKED]", p.title), rx.sub("[MASKED]", p.text)
+    return it
 
 
 if __name__ == "__main__":

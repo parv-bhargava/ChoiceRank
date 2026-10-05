@@ -35,6 +35,8 @@ class DatasetSpec:
     # "lenient" if that grade means *partially* relevant (C3: p_rel + p_partial), else "strict".
     readout: str = "strict"
     max_queries: int | None = None  # default subsample size (None = all)
+    qrels_url: str | None = None  # full URL when the qrels are not in castorini/eval
+    build: str | None = None  # name of a local builder for collections without a published BM25 run
 
 
 B = "qrels.beir-v1.0.0-{}.test.txt"
@@ -54,14 +56,24 @@ DATASETS: dict[str, DatasetSpec] = {
     "signal": DatasetSpec("signal", B.format("signal1m"), 1),
     "news": DatasetSpec("news", B.format("trec-news"), 1, dense_pool=True, readout="lenient"),  # 1 = some useful info
     "robust04": DatasetSpec("robust04", B.format("robust04"), 1, dense_pool=True),  # 1 = relevant, 2 = highly
+    # Post-cutoff contamination checks (review feedback). Both predate the Sept-2026 decision models.
+    # NovelEval-2306 (Sun et al. 2023): 21 queries x 20 Google-retrieved passages; 0/1/2, 1 = partially relevant.
+    "noveleval": DatasetSpec("noveleval", "noveleval", 1, dense_pool=True, readout="lenient",
+                             qrels_url="https://raw.githubusercontent.com/sunnweiwei/RankGPT/main/NovelEval/qrels.txt"),
+    # FutureQueryEval (Abdallah et al., EMNLP 2025): 148 queries about events after April 2025, 2,787-doc corpus,
+    # graded 0-2 (meaning of grade 1 not documented -> strict readout). BM25 top-100 built locally with bm25s.
+    "futurequery": DatasetSpec("futurequery", "futurequery", 1, dense_pool=True, build="futurequery",
+                               qrels_url="https://huggingface.co/datasets/abdoelsayed/FutureQueryEval/resolve/main/qrels.txt"),
 }
+FQE_URL = "https://huggingface.co/datasets/abdoelsayed/FutureQueryEval/resolve/main/{}"
 
 DL = ["dl19", "dl20", "dl21", "dl22", "dl23"]
 BEIR8 = ["trec-covid", "nfcorpus", "touche", "dbpedia", "scifact", "signal", "news", "robust04"]
 ALL = DL + BEIR8
 CALIB = [d for d in ALL if DATASETS[d].dense_pool]  # collections with judged negatives
 CORE = ["dl19", "dl20", "trec-covid", "nfcorpus", "scifact"]  # original 2-week core (kept for reference)
-GROUPS = {"core": CORE, "all": ALL, "dl": DL, "beir8": BEIR8, "calib": CALIB}
+NOVEL = ["noveleval", "futurequery"]  # post-cutoff checks, reported separately (not in ALL)
+GROUPS = {"core": CORE, "all": ALL, "dl": DL, "beir8": BEIR8, "calib": CALIB, "novel": NOVEL}
 
 
 @dataclass
@@ -87,6 +99,8 @@ def download_run(name: str) -> None:
     if path.exists():
         return
     path.parent.mkdir(parents=True, exist_ok=True)
+    if DATASETS[name].build == "futurequery":
+        return _build_futurequery(path)
     tmp = path.with_suffix(".part")
     url = RUN_URL.format(key=DATASETS[name].run_key)
     with httpx.stream("GET", url, follow_redirects=True, timeout=120) as r:
@@ -132,11 +146,12 @@ def load_queries(name: str, topk: int = 100, limit: int | None = None, seed: int
 
 def load_qrels(name: str) -> dict[str, dict[str, int]]:
     """qid -> {docid: grade}, from the Pyserini qrels file (TREC format), cached under data/qrels/."""
-    file = DATASETS[name].qrels_file
+    spec = DATASETS[name]
+    file = spec.qrels_file
     path = DATA_DIR / "qrels" / f"pyserini_{file}"
     if not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        r = httpx.get(QRELS_URL.format(file=file), follow_redirects=True, timeout=120)
+        r = httpx.get(spec.qrels_url or QRELS_URL.format(file=file), follow_redirects=True, timeout=120)
         r.raise_for_status()
         path.write_text(r.text, encoding="utf-8")
     qrels: dict[str, dict[str, int]] = {}
@@ -168,3 +183,23 @@ def truncate_passages(queries: list[Query], n_tokens: int) -> list[Query]:
 
 def bm25_run(queries: list[Query]) -> dict[str, dict[str, float]]:
     return {q.qid: {c.docid: c.bm25 for c in q.cands} for q in queries}
+
+
+def _build_futurequery(path) -> None:
+    """BM25 top-100 over the FutureQueryEval corpus (bm25s, Lucene-style defaults), written in the castorini format."""
+    import csv
+    import io
+
+    import bm25s
+
+    get = lambda f: httpx.get(FQE_URL.format(f), follow_redirects=True, timeout=120).text
+    corpus = list(csv.reader(io.StringIO(get("corpus.tsv")), delimiter="\t"))
+    queries = [r for r in csv.reader(io.StringIO(get("queries.tsv")), delimiter="\t") if r and r[0].startswith("query_")]
+    ids, texts = [r[0] for r in corpus], [r[1] for r in corpus]
+    retriever = bm25s.BM25()
+    retriever.index(bm25s.tokenize(texts, stopwords="en"))
+    docs, scores = retriever.retrieve(bm25s.tokenize([q[1] for q in queries], stopwords="en"), k=min(100, len(ids)))
+    with open(path, "w", encoding="utf-8") as f:
+        for q, d, sc in zip(queries, docs, scores):
+            cands = [{"docid": ids[i], "score": float(v), "doc": {"contents": texts[i]}} for i, v in zip(d, sc)]
+            f.write(json.dumps({"query": {"qid": q[0], "text": q[1]}, "candidates": cands}) + "\n")

@@ -25,13 +25,13 @@ from tqdm import tqdm
 from choicerank import ROOT, RUNS_DIR
 from choicerank.data import DATASETS, GROUPS, load_queries, truncate_passages
 
-PAID = {"jev", "clef", "clef-flash", "qwen235-yesno", "qwen27base-yesno"}
+PAID = {"jev", "clef", "clef-flash", "qwen235-yesno", "qwen27base-yesno", "qwen235-graded"}
 
 
 def run_name(model, qtype, ds, topk):
     """`model` is the run label (may carry a suffix such as -p448). Cross-encoders/BM25 have no qtype."""
     base = model.split("-p")[0] if "-p" in model else model
-    tag = model if base in ("bm25", "minilm") or base.startswith(("bge-m3", "qwen3-reranker")) or base.endswith("-yesno")         else f"{model}-{qtype}"
+    tag = model if base in ("bm25", "minilm") or base.startswith(("bge-m3", "qwen3-reranker")) or base.endswith(("-yesno", "-graded")) else f"{model}-{qtype}"
     return f"{ds}.top{topk}.{tag}"
 
 

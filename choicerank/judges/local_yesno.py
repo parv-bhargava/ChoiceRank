@@ -13,9 +13,10 @@ import time
 import torch
 
 from .base import Judge, Judgment
-from .llm_yesno import SYSTEM, USER
+from .llm_yesno import GRADED_USER, SYSTEM, USER
 
-MODELS = {"qwen08base-yesno": "Qwen/Qwen3.5-0.8B"}  # Jeff's base model
+MODELS = {"qwen08base-yesno": "Qwen/Qwen3.5-0.8B",  # Jeff's base model
+          "qwen08base-graded": "Qwen/Qwen3.5-0.8B"}  # same model, 0-4 rating readout (Zhuang et al.)
 
 
 class LocalYesNoJudge(Judge):
@@ -45,13 +46,16 @@ class LocalYesNoJudge(Judge):
         self.yes_ids = sorted({vocab[v] for v in variants("Yes") if v in vocab})
         self.no_ids = sorted({vocab[v] for v in variants("No") if v in vocab})
         assert self.yes_ids and self.no_ids
+        self.graded = alias.endswith("-graded")
+        self.digit_ids = [vocab[str(k)] for k in range(5)]
 
     @property
     def judge_id(self) -> str:
         return f"local:{self.alias}"
 
     def _prompt(self, query: str, passage: str) -> str:
-        msgs = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": USER.format(q=query, p=passage)}]
+        user = (GRADED_USER if self.graded else USER).format(q=query, p=passage)
+        msgs = [{"role": "system", "content": SYSTEM}, {"role": "user", "content": user}]
         try:
             return self.tok.apply_chat_template(msgs, tokenize=False, add_generation_prompt=True, enable_thinking=False)
         except TypeError:
@@ -68,8 +72,16 @@ class LocalYesNoJudge(Judge):
                            padding=True, add_special_tokens=False).to(self.dev)
             logits = self.model(**enc, logits_to_keep=1).logits[:, -1, :].float()  # last position only (large vocab)
             probs = torch.softmax(logits, dim=-1)
+            if self.graded:  # expected rating over the five digit tokens, renormalised
+                pd_ = probs[:, self.digit_ids]
+                pd_ = pd_ / pd_.sum(-1, keepdim=True).clamp_min(1e-12)
+                exp = (pd_ * torch.arange(5, device=pd_.device)).sum(-1) / 4
+                out += [(float(e), float(q[2:].sum())) for e, q in zip(exp, pd_)]  # (E[r]/4, P(r>=2))
+                continue
             py, pn = probs[:, self.yes_ids].sum(-1), probs[:, self.no_ids].sum(-1)
             out += [(float(a), float(b)) for a, b in zip(py, pn)]
         per = (time.perf_counter() - t0) * 1000 / max(len(passages), 1)
+        if self.graded:
+            return [Judgment(score=e, p_rel=p2, latency_ms=per, raw={"expected_rating": 4 * e}) for e, p2 in out]
         return [Judgment(score=a / (a + b) if a + b > 0 else 0.5, p_rel=a / (a + b) if a + b > 0 else 0.5,
                          latency_ms=per, raw={"p_yes": a, "p_no": b}) for a, b in out]

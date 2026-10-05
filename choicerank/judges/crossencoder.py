@@ -61,12 +61,30 @@ class Qwen3RerankerJudge(Judge):
     INSTRUCTION = "Given a web search query, retrieve relevant passages that answer the query"
 
     def __init__(self, size: str = "0.6B", passage_tokens: int = 448, batch_size: int = 16):
-        from sentence_transformers import CrossEncoder
+        # Direct transformers path (sentence-transformers >= 6 rejects the 4B/8B checkpoints' chat template for pairs).
+        # A query-document pair is tokenized as a text pair, which for this tokenizer is plain concatenation,
+        # exactly as sentence-transformers' CrossEncoder did for the 0.6B runs (verified identical).
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
         self.size, self.passage_tokens, self.batch_size = size, passage_tokens, batch_size
-        kw = {"model_kwargs": {"torch_dtype": torch.float16}} if torch.cuda.is_available() else {}
-        self.model = CrossEncoder(f"tomaarsen/Qwen3-Reranker-{size}-seq-cls", max_length=passage_tokens + 256, **kw)
-        self.tok = self.model.tokenizer
+        name = f"tomaarsen/Qwen3-Reranker-{size}-seq-cls"
+        self.tok = AutoTokenizer.from_pretrained(name)
+        self.tok.padding_side = "left"
+        if self.tok.pad_token is None:
+            self.tok.pad_token = self.tok.eos_token
+        self.dev = "cuda" if torch.cuda.is_available() else "cpu"
+        if size in ("4B", "8B") and self.dev == "cuda":  # 8 GB GPU: 4-bit NF4 weights, fp16 compute
+            from transformers import BitsAndBytesConfig
+
+            q = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.float16)
+            self.model = AutoModelForSequenceClassification.from_pretrained(name, quantization_config=q, device_map="cuda")
+            self.batch_size = 8
+        else:
+            dtype = torch.float16 if self.dev == "cuda" else torch.float32
+            self.model = AutoModelForSequenceClassification.from_pretrained(name, dtype=dtype).to(self.dev)
+        self.model.eval()
+        if self.model.config.pad_token_id is None:
+            self.model.config.pad_token_id = self.tok.pad_token_id
 
     @property
     def judge_id(self) -> str:
@@ -77,7 +95,12 @@ class Qwen3RerankerJudge(Judge):
         ids = self.tok(passages, add_special_tokens=False, truncation=True, max_length=self.passage_tokens)["input_ids"]
         docs = [self.tok.decode(x) for x in ids]
         q = f"{self.PREFIX}<Instruct>: {self.INSTRUCTION}\n<Query>: {query}\n"
-        logits = self.model.predict([(q, f"<Document>: {d}{self.SUFFIX}") for d in docs], batch_size=self.batch_size,
-                                    activation_fn=torch.nn.Identity(), show_progress_bar=False)
+        logits = []
+        with torch.inference_mode():
+            for i in range(0, len(docs), self.batch_size):
+                part = [f"<Document>: {d}{self.SUFFIX}" for d in docs[i:i + self.batch_size]]
+                enc = self.tok([q] * len(part), part, padding=True, truncation=True,
+                               max_length=self.passage_tokens + 256, return_tensors="pt").to(self.dev)
+                logits += self.model(**enc).logits[:, 0].float().tolist()
         per_pair = (time.perf_counter() - t0) * 1000 / max(len(passages), 1)
         return [Judgment(score=float(z), p_rel=1 / (1 + math.exp(-float(z))), latency_ms=per_pair) for z in logits]

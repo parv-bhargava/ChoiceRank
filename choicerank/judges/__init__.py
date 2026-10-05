@@ -19,11 +19,11 @@ def make_judge(model: str, qtype: str = "choice3") -> Judge:
         from .crossencoder import CrossEncoderJudge
 
         return CrossEncoderJudge("bge-m3", max_length=int(model.split("-")[-1]), label=model)
-    if model == "qwen08base-yesno":  # Jeff's base model, local P(yes) (free)
+    if model in ("qwen08base-yesno", "qwen08base-graded"):  # Jeff's base model, local (free)
         from .local_yesno import LocalYesNoJudge
 
         return LocalYesNoJudge(model)
-    if model.endswith("-yesno"):  # label-probability pointwise LLM baseline (PAID)
+    if model.endswith(("-yesno", "-graded")):  # label-probability pointwise LLM baseline (PAID)
         from .llm_yesno import LLMYesNoJudge
 
         return LLMYesNoJudge(model)

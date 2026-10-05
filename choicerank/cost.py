@@ -19,7 +19,7 @@ FIXED_OVERHEAD_TOKENS = 290
 
 
 def pair_tokens(query: str, passage: str, qtype: str, max_chars: int = 4000, backend: str = "jev") -> int:
-    if backend.endswith("-yesno"):  # short yes/no prompt, passage cut to 448 tokens (~1,800 chars)
+    if backend.endswith(("-yesno", "-graded")):  # short yes/no or 0-4 rating prompt, passage cut to 448 tokens (~1,800 chars)
         return int((len(query) + min(len(passage), 1800)) / CHARS_PER_TOKEN) + 60
     q_chars = len(json.dumps(questions_for(qtype)))
     return int((len(query) + min(len(passage), max_chars) + q_chars) / CHARS_PER_TOKEN) + FIXED_OVERHEAD_TOKENS
@@ -29,7 +29,7 @@ def estimate(queries: list[Query], backend: str, qtype: str) -> dict:
     tokens = sum(pair_tokens(q.text, c.text, qtype, backend=backend) for q in queries for c in q.cands)
     pairs = sum(len(q.cands) for q in queries)
     price = PRICES.get(backend)
-    if price is None and backend.endswith("-yesno"):
+    if price is None and backend.endswith(("-yesno", "-graded")):
         from .judges.llm_yesno import MODELS
 
         price = MODELS[backend][2]

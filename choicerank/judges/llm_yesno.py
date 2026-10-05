@@ -23,11 +23,16 @@ MODELS = {  # alias -> (OpenRouter id, allowed providers (all fp8, logprobs-capa
     "qwen235-yesno": ("qwen/qwen3-235b-a22b-2507", ["GMICloud", "Parasail"], 0.14, 0.0),
     # Clef's own base model, served by Cloudflare (Clef's host): same-base P(yes) readout, reasoning disabled
     "qwen27base-yesno": ("qwen/qwen3.8-27b", ["Cloudflare"], 0.45, 0.0),
+    "qwen235-graded": ("qwen/qwen3-235b-a22b-2507", ["GMICloud", "Parasail"], 0.14, 0.0),
 }
 NO_REASONING = {"qwen27base-yesno"}  # hybrid-thinking models: answer directly
 SYSTEM = "You are a search relevance assessor."
 USER = ("Query: {q}\nPassage: {p}\n\n"
         "Does the passage answer the query? Answer with Yes or No only.")
+# Graded-label readout (Zhuang et al., 2024): 0-4 rating, rank by the expected rating over the digit tokens
+GRADED_USER = ("Query: {q}\nPassage: {p}\n\n"
+               "From a scale of 0 to 4, judge the relevance between the query and the passage. "
+               "Answer with a single digit only.")
 YES, NO = {"yes", "y"}, {"no", "n"}
 
 
@@ -71,7 +76,7 @@ class LLMYesNoJudge(Judge):
                 "provider": {"only": self.providers, "require_parameters": True},
                 **({"reasoning": {"enabled": False}} if self.alias in NO_REASONING else {}),
                 "messages": [{"role": "system", "content": SYSTEM},
-                             {"role": "user", "content": USER.format(q=query, p=passage)}]}
+                             {"role": "user", "content": (GRADED_USER if self.alias.endswith("-graded") else USER).format(q=query, p=passage)}]}
         rpm = float(os.environ.get("CHOICERANK_RPM", "0"))
         last_err = None
         for attempt in range(8):
@@ -99,6 +104,15 @@ class LLMYesNoJudge(Judge):
         latency = (time.perf_counter() - t0) * 1000
         top = (d["choices"][0].get("logprobs") or {}).get("content") or []
         cands = top[0]["top_logprobs"] if top else []
+        if self.alias.endswith("-graded"):  # expected rating over the digits present in the top-5 tokens
+            pk = {k: sum(math.exp(c["logprob"]) for c in cands if c["token"].strip() == str(k)) for k in range(5)}
+            z = sum(pk.values())
+            e = sum(k * v for k, v in pk.items()) / z / 4 if z > 0 else 0.5
+            p2 = (pk[2] + pk[3] + pk[4]) / z if z > 0 else 0.5
+            u = d.get("usage", {})
+            return Judgment(score=e, p_rel=p2, latency_ms=latency, in_tokens=int(u.get("prompt_tokens", 0)),
+                            cost_usd=float(u.get("cost", 0.0)),
+                            raw={"p_digits": pk, "provider": d.get("provider"), "answer": d["choices"][0]["message"]["content"]})
         py = sum(math.exp(c["logprob"]) for c in cands if c["token"].strip().lower() in YES)
         pn = sum(math.exp(c["logprob"]) for c in cands if c["token"].strip().lower() in NO)
         p = py / (py + pn) if py + pn > 0 else 0.5
