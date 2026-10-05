@@ -126,14 +126,12 @@ def calibration_table(cal: pd.DataFrame, transfer: pd.DataFrame | None = None) -
              r"those with the target's relevance grading (Match.: DL$\to$DL, BEIR$\to$BEIR). "
              r"In-coll.: Platt with 10$\times$ repeated 5-fold query cross-fitting on the target collection (needs target labels; SD $\le$0.6). "
              r"C3/S4: Choice-3/Score-4. $^\dagger$Strict readout on every collection instead of the per-collection policy (Section~\ref{sec:setup}). "
-             r"$^\ast$Seven of the nine collections (no DBPedia, News). Bold: best among systems on all nine. "
-             r"Latency: median over collections of per-pair p50/p95 (local models on a laptop RTX 4060; Jeff with reference "
-             r"attention kernels; API models with 8--24 concurrent requests). Cost: USD per 1k queries at 100 passages.}",
+             r"$^\ast$Seven of the nine collections (no DBPedia, News). Bold: best among systems on all nine.}",
              r"\label{tab:calibration}",
-             r"\begin{tabular}{lrrrrrrrr}", r"\toprule",
-             r" & \multicolumn{4}{c}{ECE} & & & & \\ \cmidrule(lr){2-5}",
-             r" & & \multicolumn{2}{c}{Transfer} & & & & & \\ \cmidrule(lr){3-4}",
-             r"System & Raw & All & Match. & In-coll. & Brier & $\bar{p}$ & ms p50/p95 & \$/1kQ \\", r"\midrule"]
+             r"\begin{tabular}{lrrrrrr}", r"\toprule",
+             r" & \multicolumn{4}{c}{ECE} & & \\ \cmidrule(lr){2-5}",
+             r" & & \multicolumn{2}{c}{Transfer} & & & \\ \cmidrule(lr){3-4}",
+             r"System & Raw & All & Match. & In-coll. & Brier & $\bar{p}$ \\", r"\midrule"]
     lat = lambda v: "--" if pd.isna(v) else (f"{v:.1f}" if v < 10 else f"{v:.0f}")
     for key, label in rows:
         r = agg.loc[key]
@@ -146,9 +144,9 @@ def calibration_table(cal: pd.DataFrame, transfer: pd.DataFrame | None = None) -
             return rf"\textbf{{{t}}}" if key in full and c in best and abs(v - best[c]) < 1e-9 else t
         usd = "--" if pd.isna(r.usd) else ("0" if not r.usd else f"{r.usd:.2f}")
         lines.append(f"{label} & {fmt('ECE', '{:.1f}')} & {fmt('ECE_LOCO', '{:.1f}')} & {fmt('ECE_match', '{:.1f}')} & "
-                     f"{fmt('ECE_Platt', '{:.1f}')} & {fmt('Brier', '{:.3f}')} & {r.mean_p:.2f} & {lat(r.lat)}/{lat(r.lat95)} & {usd} \\\\")
+                     f"{fmt('ECE_Platt', '{:.1f}')} & {fmt('Brier', '{:.3f}')} & {r.mean_p:.2f} \\\\")
     base = agg.loc["bge-m3", "base"]
-    lines += [r"\midrule", rf"\multicolumn{{9}}{{l}}{{\footnotesize Base rate of relevance (mean over the nine collections): {base:.2f}}} \\",
+    lines += [r"\midrule", rf"\multicolumn{{7}}{{l}}{{\footnotesize Base rate of relevance (mean over the nine collections): {base:.2f}}} \\",
               r"\bottomrule", r"\end{tabular}", r"\end{table}"]
     return "\n".join(lines)
 
