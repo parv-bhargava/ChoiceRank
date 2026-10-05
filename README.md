@@ -84,6 +84,7 @@ All judgments are cached, so interrupted runs resume where they stopped. API mod
 python scripts/eval_all.py          # results/ranking.csv, results/calibration.csv
 python scripts/significance.py      # paired t-tests, bootstrap CIs, Holm per system pair
 python scripts/review_analyses.py   # readouts, transfer calibration, pool bias, RAG selection, CIs
+python scripts/review3_analyses.py  # paired ECE tests, grading-matched transfer, pooled tests, MuSiQue mechanism
 python scripts/depth_analysis.py    # reranking-depth simulation
 python scripts/rag_summary.py       # RQ3 tests -> paper/tables/rag.tex
 python scripts/make_tables.py && python scripts/make_appendix.py && python scripts/make_figures.py   # -> paper/tables, paper/figures
