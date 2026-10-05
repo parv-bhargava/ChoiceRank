@@ -82,6 +82,9 @@ def ranker_tables(dataset: str, split: str, stand_in: bool = False) -> dict[str,
 FINAL_POLICIES = {"none", "all", "gold"} | {
     f"{r}:{p}" for r in RANKERS
     for p in ["top1", "top2", "top3", "top5", "adaptive", "floor2+thr0.3", "floor2+thr0.5", "thrPlatt0.2", "thrPlatt0.3"]}
+# Post-hoc addendum (2026-10-04, after internal review round 3, final results already seen): label-free
+# thresholds on Jev's raw probability, so RQ3 also tests uncalibrated probabilities. Reported as post-hoc.
+FINAL_POLICIES |= {"jev:thrRaw0.3", "jev:thrRaw0.5", "jev:thrRaw0.7"}
 
 
 def policies(item, tables) -> dict[str, list[str]]:

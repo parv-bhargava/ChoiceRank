@@ -88,35 +88,52 @@ def ranking_table(rank: pd.DataFrame, sig: pd.DataFrame) -> str:
 
 
 def calibration_table(cal: pd.DataFrame, transfer: pd.DataFrame | None = None) -> str:
-    """Raw ECE, transfer-calibrated ECE (Platt fit on the OTHER collections: no target labels), in-collection Platt
-    (2-fold query cross-fit; needs target labels), Brier, mean prediction, latency, cost."""
+    """Raw ECE; transfer-calibrated ECE (Platt fit on the OTHER collections, no target labels), pooled over all of them
+    and restricted to those graded like the target; in-collection Platt (10x repeated 5-fold query cross-fit; needs
+    target labels); Brier; mean prediction; latency; cost. Jev C3 is shown under both readouts (review round 3)."""
     rows = [("minilm", "MiniLM-L6"), ("bge-m3", "bge-v2-m3"), ("qwen3-reranker-0.6B", "Qwen3-Rer.-0.6B"),
             ("qwen235-yesno", "Qwen3-235B P(yes)$^\\ast$"),
             ("laya-choice3", "Laya C3"), ("laya-noul", "Laya Noul"), ("jeff-0.8b-choice3", "Jeff C3"),
             ("jeff-0.8b-noul", "Jeff Noul"), ("clef-choice3", "Clef C3$^\\ast$"), ("clef-noul", "Clef Noul$^\\ast$"),
-            ("clef-score4", "Clef S4$^\\ast$"), ("jev-choice3", "Jev C3"), ("jev-noul", "Jev Noul"), ("jev-score4", "Jev S4")]
+            ("clef-score4", "Clef S4$^\\ast$"), ("jev-choice3", "Jev C3"), ("jev-choice3@strict", "Jev C3 (strict)$^\\dagger$"),
+            ("jev-noul", "Jev Noul"), ("jev-score4", "Jev S4")]
     d = cal[cal.dataset.isin(CALIB)].groupby("system")
     agg = pd.DataFrame({"ECE": d.ECE.mean(), "Brier": d.Brier.mean(), "ECE_Platt": d.ECE_Platt.mean(),
                         "mean_p": d.mean_p.mean(), "base": d.base_rate.mean()})
     if transfer is not None:
         agg["ECE_LOCO"] = transfer.groupby("system").ECE_LOCO.mean()
+    r3 = RESULTS_DIR
+    if (r3 / "r3_transfer.csv").exists():
+        t3 = pd.read_csv(r3 / "r3_transfer.csv").groupby("system")
+        rob = pd.read_csv(r3 / "r3_calib_robust.csv").groupby("system")
+        inc = pd.read_csv(r3 / "r3_incoll.csv").groupby("system").ECE_incoll_mean.mean()
+        for sys_ in t3.groups:
+            if sys_ not in agg.index:
+                agg.loc[sys_, ["ECE", "Brier", "mean_p"]] = [rob.ECE_15.mean()[sys_], rob.Brier.mean()[sys_], rob.mean_p.mean()[sys_]]
+            agg.loc[sys_, "ECE_LOCO"] = t3.pooled.mean()[sys_]
+            agg.loc[sys_, "ECE_match"] = t3.matched.mean()[sys_]
+            agg.loc[sys_, "ECE_Platt"] = inc[sys_]
     allc = cal[cal.dataset.isin(DL + BEIR8)].groupby("system")
     agg["lat"], agg["lat95"], agg["usd"] = allc.lat_p50_ms.median(), allc.lat_p95_ms.median(), allc.usd_per_1k_q.mean()
     rows = [(k, l) for k, l in rows if k in agg.index]
-    full = [r for r, _ in rows if cal[(cal.system == r) & cal.dataset.isin(CALIB)].dataset.nunique() == len(CALIB)]
-    best = {c: agg.loc[full, c].min() for c in ["ECE", "ECE_LOCO", "Brier", "ECE_Platt"] if c in agg}  # no bold for subsets
-    lines = [r"\begin{table}[t]", r"\centering", r"\footnotesize", r"\setlength{\tabcolsep}{2pt}",
+    full = [r for r, _ in rows if r.endswith("@strict") or
+            cal[(cal.system == r) & cal.dataset.isin(CALIB)].dataset.nunique() == len(CALIB)]
+    best = {c: agg.loc[full, c].min() for c in ["ECE", "ECE_LOCO", "ECE_match", "Brier", "ECE_Platt"] if c in agg}
+    lines = [r"\begin{table}[t]", r"\centering", r"\footnotesize", r"\setlength{\tabcolsep}{1.6pt}",
              r"\caption{Calibration of $P(\text{relevant})$ on the nine collections with judged negatives "
-             r"(DL19--23, TREC-COVID, DBPedia, News, Robust04; mean over collections, ECE$\times$100, 15 bins, judged pairs only). "
-             r"Raw: no recalibration. Transfer: Platt scaling fit on the other eight collections (no target labels). "
-             r"In-coll.: Platt with 2-fold query-level cross-fitting on the target collection (needs target labels). "
-             r"C3/S4: Choice-3/Score-4 readout. $^\ast$Seven of the nine collections (no DBPedia, News). "
+             r"(DL19--23, TREC-COVID, DBPedia, News, Robust04; unweighted mean over collections, ECE$\times$100, 15 bins, judged pairs only). "
+             r"Raw: no recalibration. Transfer (no target labels): Platt scaling fit on the other eight collections pooled (All) or only on "
+             r"those with the target's relevance grading (Match.: DL$\to$DL, BEIR$\to$BEIR). "
+             r"In-coll.: Platt with 10$\times$ repeated 5-fold query cross-fitting on the target collection (needs target labels; SD $\le$0.6). "
+             r"C3/S4: Choice-3/Score-4. $^\dagger$Strict readout on every collection instead of the per-collection policy (Section~\ref{sec:setup}). "
+             r"$^\ast$Seven of the nine collections (no DBPedia, News). Bold: best among systems on all nine. "
              r"Latency: median over collections of per-pair p50/p95 (local models on a laptop RTX 4060; Jeff with reference "
              r"attention kernels; API models with 8--24 concurrent requests). Cost: USD per 1k queries at 100 passages.}",
              r"\label{tab:calibration}",
-             r"\begin{tabular}{lrrrrrrr}", r"\toprule",
-             r" & \multicolumn{3}{c}{ECE} & & & & \\ \cmidrule(lr){2-4}",
-             r"System & Raw & Transfer & In-coll. & Brier & $\bar{p}$ & ms p50/p95 & \$/1kQ \\", r"\midrule"]
+             r"\begin{tabular}{lrrrrrrrr}", r"\toprule",
+             r" & \multicolumn{4}{c}{ECE} & & & & \\ \cmidrule(lr){2-5}",
+             r" & & \multicolumn{2}{c}{Transfer} & & & & & \\ \cmidrule(lr){3-4}",
+             r"System & Raw & All & Match. & In-coll. & Brier & $\bar{p}$ & ms p50/p95 & \$/1kQ \\", r"\midrule"]
     lat = lambda v: "--" if pd.isna(v) else (f"{v:.1f}" if v < 10 else f"{v:.0f}")
     for key, label in rows:
         r = agg.loc[key]
@@ -127,11 +144,11 @@ def calibration_table(cal: pd.DataFrame, transfer: pd.DataFrame | None = None) -
                 return "--"
             t = f.format(v)
             return rf"\textbf{{{t}}}" if key in full and c in best and abs(v - best[c]) < 1e-9 else t
-        usd = "0" if not r.usd else f"{r.usd:.2f}"
-        lines.append(f"{label} & {fmt('ECE', '{:.1f}')} & {fmt('ECE_LOCO', '{:.1f}')} & {fmt('ECE_Platt', '{:.1f}')} & "
-                     f"{fmt('Brier', '{:.3f}')} & {r.mean_p:.2f} & {lat(r.lat)}/{lat(r.lat95)} & {usd} \\\\")
+        usd = "--" if pd.isna(r.usd) else ("0" if not r.usd else f"{r.usd:.2f}")
+        lines.append(f"{label} & {fmt('ECE', '{:.1f}')} & {fmt('ECE_LOCO', '{:.1f}')} & {fmt('ECE_match', '{:.1f}')} & "
+                     f"{fmt('ECE_Platt', '{:.1f}')} & {fmt('Brier', '{:.3f}')} & {r.mean_p:.2f} & {lat(r.lat)}/{lat(r.lat95)} & {usd} \\\\")
     base = agg.loc["bge-m3", "base"]
-    lines += [r"\midrule", rf"\multicolumn{{8}}{{l}}{{\footnotesize Base rate of relevance (mean over the nine collections): {base:.2f}}} \\",
+    lines += [r"\midrule", rf"\multicolumn{{9}}{{l}}{{\footnotesize Base rate of relevance (mean over the nine collections): {base:.2f}}} \\",
               r"\bottomrule", r"\end{tabular}", r"\end{table}"]
     return "\n".join(lines)
 
