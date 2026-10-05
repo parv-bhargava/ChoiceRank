@@ -73,6 +73,7 @@ class LLMYesNoJudge(Judge):
                 "messages": [{"role": "system", "content": SYSTEM},
                              {"role": "user", "content": USER.format(q=query, p=passage)}]}
         rpm = float(os.environ.get("CHOICERANK_RPM", "0"))
+        last_err = None
         for attempt in range(8):
             _pace(rpm)
             t0 = time.perf_counter()
@@ -86,11 +87,16 @@ class LLMYesNoJudge(Judge):
                 time.sleep(min(2 ** attempt, 60) + (30 if r.status_code == 429 and rpm else 0))
                 continue
             r.raise_for_status()
+            d = r.json()
+            if "choices" not in d:  # provider error returned with HTTP 200 (body holds {"error": ...})
+                last_err = d.get("error", d)
+                time.sleep(min(2 ** attempt, 60))
+                continue
             break
         else:
             r.raise_for_status()
+            raise RuntimeError(f"no choices after retries: {last_err}")
         latency = (time.perf_counter() - t0) * 1000
-        d = r.json()
         top = (d["choices"][0].get("logprobs") or {}).get("content") or []
         cands = top[0]["top_logprobs"] if top else []
         py = sum(math.exp(c["logprob"]) for c in cands if c["token"].strip().lower() in YES)

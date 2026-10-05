@@ -27,7 +27,8 @@ GROUPS = [
     ("", [("bm25", "BM25 (first stage)")]),
     ("Cross-encoders", [("minilm", "MiniLM-L6 (22M)"), ("bge-m3", "bge-reranker-v2-m3 (568M)")]),
     ("Label-probability LLM rerankers", [("qwen3-reranker-0.6B", "Qwen3-Reranker-0.6B"),
-                                         ("qwen235-yesno", "Qwen3-235B, P(yes)")]),
+                                         ("qwen235-yesno", "Qwen3-235B, P(yes)"),
+                                         ("qwen27base-yesno", "Qwen3.8-27B (Clef's base), P(yes)")]),
     ("Laya (421M)", [("laya-choice3", "\\quad Choice-3"), ("laya-noul", "\\quad Noul"), ("laya-score4", "\\quad Score-4")]),
     ("Jeff (0.8B)", [("jeff-0.8b-choice3", "\\quad Choice-3"), ("jeff-0.8b-noul", "\\quad Noul"),
                      ("jeff-0.8b-score4", "\\quad Score-4")]),
@@ -56,7 +57,7 @@ def ranking_table(rank: pd.DataFrame, sig: pd.DataFrame) -> str:
              r"$^\uparrow$/$^\downarrow$: significantly better/worse than bge-reranker-v2-m3 (paired $t$-test over queries, "
              r"Holm-corrected over the collections each pair was evaluated on, $p<0.05$). Best per column in bold. "
              r"Averages are reported only for systems run on every collection of the group (dash otherwise); "
-             r"matched comparisons for Clef and Qwen3-235B are given in the text. "
+             r"matched comparisons for Clef and the two P(yes) LLMs are given in the text. "
              r"Touche, News and Robust04 contain long documents that every model truncates (Table~\ref{tab:longdoc}).}",
              r"\label{tab:ranking}",
              r"\begin{tabular}{l" + "r" * 5 + "|r|" + "r" * 8 + "|r|r}", r"\toprule",
