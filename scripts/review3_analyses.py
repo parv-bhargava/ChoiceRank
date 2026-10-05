@@ -277,6 +277,38 @@ def musique_mechanism():
     pd.DataFrame(out).to_csv(RESULTS_DIR / "r3_musique_mechanism.csv", index=False)
 
 
+def _re_pool(t):
+    """DerSimonian-Laird random-effects pooled mean difference and its SE from per-collection deltas/variances."""
+    w = 1 / t["var"]; fe = np.sum(w * t.delta) / w.sum()
+    Q = np.sum(w * (t.delta - fe) ** 2); k = len(t)
+    tau2 = max(0.0, (Q - (k - 1)) / (w.sum() - (w ** 2).sum() / w.sum()))
+    wr = 1 / (t["var"] + tau2)
+    return np.sum(wr * t.delta) / wr.sum(), np.sqrt(1 / wr.sum())
+
+
+EQ_MARGIN = 2.0  # nDCG@10 points
+
+
+def equiv():
+    """Equivalence for the paper's "on par" claims: random-effects pooled difference with 95% CI, 90% CI and
+    TOST at +/-2 nDCG@10 points (equivalent if the 90% CI lies inside the margin)."""
+    from choicerank.data import DL
+    out = []
+    claims = [(f"jev-{f}", b, "DL19-23", DL) for f in ("score4", "noul", "choice3") for b in ("bge-m3", "minilm")]
+    claims += [(f"clef-{f}", "qwen27base-yesno", "DL19/20+COVID", ["dl19", "dl20", "trec-covid"]) for f in ("choice3", "noul", "score4")]
+    claims += [(f"jev-{f}", f"clef-{f}", "Clef-7", ["dl19", "dl20", "dl21", "dl22", "dl23", "trec-covid", "robust04"])
+               for f in ("choice3", "noul", "score4")]
+    for a, b, label, dsets in claims:
+        t = _deltas(a, b, dsets)
+        m, se = _re_pool(t)
+        z = (m + EQ_MARGIN) / se, (EQ_MARGIN - m) / se
+        out.append(dict(A=a, B=b, collections=label, k=len(t), diff=m, ci95_lo=m - 1.96 * se, ci95_hi=m + 1.96 * se,
+                        ci90_lo=m - 1.645 * se, ci90_hi=m + 1.645 * se,
+                        p_tost=max(stats.norm.sf(z[0]), stats.norm.sf(z[1])),
+                        equivalent=bool(m - 1.645 * se > -EQ_MARGIN and m + 1.645 * se < EQ_MARGIN)))
+    pd.DataFrame(out).to_csv(RESULTS_DIR / "r3_equiv.csv", index=False)
+
+
 if __name__ == "__main__":
     for name in sys.argv[1:] or ["transfer", "robust", "meta", "eqctx", "yesno_fallback", "incoll", "calib_diff", "musique_mechanism"]:
         globals()[name]()
