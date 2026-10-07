@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import math
 import os
+import random
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -79,7 +80,7 @@ class LLMYesNoJudge(Judge):
                              {"role": "user", "content": (GRADED_USER if self.alias.endswith("-graded") else USER).format(q=query, p=passage)}]}
         rpm = float(os.environ.get("CHOICERANK_RPM", "0"))
         last_err = None
-        for attempt in range(8):
+        for attempt in range(16):
             _pace(rpm)
             t0 = time.perf_counter()
             try:
@@ -88,8 +89,15 @@ class LLMYesNoJudge(Judge):
             except httpx.TransportError:  # transient socket/connection errors (seen on Windows under load)
                 time.sleep(min(2 ** attempt, 30))
                 continue
-            if r.status_code in (408, 429, 500, 502, 503, 504, 520, 521, 522, 523, 524):
-                time.sleep(min(2 ** attempt, 60) + (30 if r.status_code == 429 and rpm else 0))
+            if r.status_code == 429:  # provider rate limit
+                # CHOICERANK_MAX_WAIT caps the wait (seconds). The providers often send Retry-After: 60 for limits
+                # that clear within seconds; honouring it fully left most workers asleep (~0.8 pairs/s with 12).
+                cap = float(os.environ.get("CHOICERANK_MAX_WAIT", "120"))
+                wait = float(r.headers.get("retry-after") or 2 ** attempt)
+                time.sleep(min(wait, cap, 2 * 2 ** attempt) + random.uniform(0, 3))
+                continue
+            if r.status_code in (408, 500, 502, 503, 504, 520, 521, 522, 523, 524):
+                time.sleep(min(2 ** attempt, 60))
                 continue
             r.raise_for_status()
             d = r.json()
