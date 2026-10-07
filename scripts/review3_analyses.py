@@ -36,7 +36,7 @@ RNG = np.random.default_rng(0)
 REPS = 2000
 CAL_SYS = ["bge-m3", "minilm", "qwen3-reranker-0.6B", "laya-choice3", "laya-noul", "jeff-0.8b-choice3",
            "jev-choice3", "jev-noul", "jev-score4", "jev-choice3@strict", "jeff-0.8b-noul", "clef-choice3", "clef-noul",
-           "clef-score4", "qwen235-yesno"]
+           "clef-score4", "qwen235-yesno", "qwen3-reranker-4B", "qwen3-reranker-8B"]
 
 
 def lp(s, d):
@@ -186,7 +186,9 @@ def meta():
     """DerSimonian-Laird random-effects pooling of per-collection mean nDCG@10 differences."""
     out = []
     pairs = [("jev-score4", "bge-m3"), ("jev-score4", "qwen3-reranker-0.6B"), ("jev-score4", "minilm"),
-             ("jev-noul", "bge-m3"), ("jev-choice3", "bge-m3"), ("clef-score4", "bge-m3"), ("jev-score4", "clef-score4")]
+             ("jev-noul", "bge-m3"), ("jev-choice3", "bge-m3"), ("clef-score4", "bge-m3"), ("jev-score4", "clef-score4"),
+             ("jev-score4", "qwen3-reranker-8B"), ("jev-score4", "qwen3-reranker-4B"), ("qwen3-reranker-8B", "bge-m3"),
+             ("qwen235-graded", "qwen235-yesno")]
     for a, b in pairs:
         for label, dsets in [("all", ALL), ("no_robust04", [d for d in ALL if d != "robust04"])]:
             t = _deltas(a, b, dsets)
@@ -296,6 +298,8 @@ def equiv():
     out = []
     claims = [(f"jev-{f}", b, "DL19-23", DL) for f in ("score4", "noul", "choice3") for b in ("bge-m3", "minilm")]
     claims += [(f"clef-{f}", "qwen27base-yesno", "DL19/20+COVID", ["dl19", "dl20", "trec-covid"]) for f in ("choice3", "noul", "score4")]
+    claims += [(f"jev-{f}", "qwen3-reranker-8B", "All-13", list(__import__("choicerank.data", fromlist=["ALL"]).ALL))
+               for f in ("score4", "noul", "choice3")]
     claims += [(f"jev-{f}", f"clef-{f}", "Clef-7", ["dl19", "dl20", "dl21", "dl22", "dl23", "trec-covid", "robust04"])
                for f in ("choice3", "noul", "score4")]
     for a, b, label, dsets in claims:

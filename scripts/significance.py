@@ -18,13 +18,17 @@ from choicerank.evaluate import per_query
 from scripts.eval_all import read_trec
 
 DECISION = [f"{m}-{q}" for m in ("jev", "clef", "laya", "jeff-0.8b") for q in ("choice3", "noul", "score4")]
-LLM = ["qwen3-reranker-0.6B", "qwen235-yesno"]  # label-probability baselines
+LLM = ["qwen3-reranker-0.6B", "qwen3-reranker-4B", "qwen3-reranker-8B", "qwen235-yesno", "qwen235-graded",
+       "qwen27base-yesno", "qwen08base-yesno", "qwen08base-graded"]  # label-probability baselines
 FORMATS = ("choice3", "noul", "score4")
 PAIRS = ([(s, "bge-m3") for s in DECISION + LLM + ["minilm"]]
          + [(f"jev-{q}", f"clef-{q}") for q in FORMATS]          # closed vs open flagship decision model
          + [(f"jev-{q}", "qwen235-yesno") for q in FORMATS]      # typed vs label-probability readout
          + [(f"clef-{q}", "qwen235-yesno") for q in FORMATS]
          + [(f"clef-{q}", "qwen27base-yesno") for q in FORMATS]  # same base model: decision training vs P(yes)
+         + [(f"jev-{q}", "qwen3-reranker-8B") for q in FORMATS]  # strongest open pointwise reranker
+         + [("qwen235-graded", "qwen235-yesno"), ("qwen08base-graded", "qwen08base-yesno")]  # graded vs yes/no readout
+         + [(f"jeff-0.8b-{q}", "qwen08base-yesno") for q in FORMATS]
          + [(s, "minilm") for s in DECISION]
          + [(s, "bm25") for s in DECISION + LLM + ["minilm", "bge-m3"]])
 

@@ -27,9 +27,13 @@ GROUPS = [
     ("", [("bm25", "BM25 (first stage)")]),
     ("Cross-encoders", [("minilm", "MiniLM-L6 (22M)"), ("bge-m3", "bge-reranker-v2-m3 (568M)")]),
     ("Label-probability LLM rerankers", [("qwen3-reranker-0.6B", "Qwen3-Reranker-0.6B"),
+                                         ("qwen3-reranker-4B", "Qwen3-Reranker-4B (4-bit)"),
+                                         ("qwen3-reranker-8B", "Qwen3-Reranker-8B (4-bit)"),
                                          ("qwen235-yesno", "Qwen3-235B, P(yes)"),
+                                         ("qwen235-graded", "Qwen3-235B, graded 0--4"),
                                          ("qwen27base-yesno", "Qwen3.8-27B (Clef's base), P(yes)"),
-                                         ("qwen08base-yesno", "Qwen3.5-0.8B (Jeff's base), P(yes)")]),
+                                         ("qwen08base-yesno", "Qwen3.5-0.8B (Jeff's base), P(yes)"),
+                                         ("qwen08base-graded", "Qwen3.5-0.8B (Jeff's base), graded 0--4")]),
     ("Laya (421M)", [("laya-choice3", "\\quad Choice-3"), ("laya-noul", "\\quad Noul"), ("laya-score4", "\\quad Score-4")]),
     ("Jeff (0.8B)", [("jeff-0.8b-choice3", "\\quad Choice-3"), ("jeff-0.8b-noul", "\\quad Noul"),
                      ("jeff-0.8b-score4", "\\quad Score-4")]),
@@ -94,6 +98,7 @@ def calibration_table(cal: pd.DataFrame, transfer: pd.DataFrame | None = None) -
     and restricted to those graded like the target; in-collection Platt (10x repeated 5-fold query cross-fit; needs
     target labels); Brier; mean prediction; latency; cost. Jev C3 is shown under both readouts (review round 3)."""
     rows = [("minilm", "MiniLM-L6"), ("bge-m3", "bge-v2-m3"), ("qwen3-reranker-0.6B", "Qwen3-Rer.-0.6B"),
+            ("qwen3-reranker-4B", "Qwen3-Rer.-4B"), ("qwen3-reranker-8B", "Qwen3-Rer.-8B"),
             ("qwen235-yesno", "Qwen3-235B P(yes)$^\\ast$"),
             ("laya-choice3", "Laya C3"), ("laya-noul", "Laya Noul"), ("jeff-0.8b-choice3", "Jeff C3"),
             ("jeff-0.8b-noul", "Jeff Noul"), ("clef-choice3", "Clef C3$^\\ast$"), ("clef-noul", "Clef Noul$^\\ast$"),
