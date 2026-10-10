@@ -52,8 +52,25 @@ python scripts/run_rerank.py --model minilm --dataset all
 python scripts/run_rerank.py --model bge-m3 --dataset all
 python scripts/run_rerank.py --model bge-m3-2048 --dataset touche news robust04
 python scripts/run_rerank.py --model qwen3-reranker-0.6B --dataset all
+python scripts/run_rerank.py --model qwen3-reranker-4B --dataset all
+python scripts/run_rerank.py --model qwen3-reranker-8B --dataset all
+python scripts/run_rerank.py --model qwen08base-yesno --dataset all
+python scripts/run_rerank.py --model qwen08base-graded --dataset all
 python scripts/run_rerank.py --model laya   --qtype all --dataset all
 ```
+
+The 4B/8B Qwen rerankers use 4-bit NF4 weights on CUDA. The same-base controls use 448 passage tokens; decision models use 4,000 characters, so their differences are configuration comparisons, not isolated training effects. Jev's training cutoff is unknown; the two newer-content datasets below are not established post-cutoff tests.
+
+```bash
+python scripts/run_rerank.py --model minilm --dataset touche news robust04 --passage-tokens 448
+python scripts/run_rerank.py --model bge-m3 --dataset touche news robust04 --passage-tokens 448
+python scripts/run_rerank.py --model bm25 --dataset novel
+python scripts/run_rerank.py --model bge-m3 --dataset novel
+python scripts/run_rerank.py --model qwen3-reranker-8B --dataset novel
+python scripts/run_listwise.py --dataset dl19
+```
+
+The published RankZephyr comparison uses published full-precision results; the local 4-bit DL19 run is a sanity check. Extra optional configurations may be evaluated with the same dataset groups.
 
 **Jeff** runs through its reference server ([firelex/jeff](https://github.com/firelex/jeff), commit `d0173b4`):
 
@@ -64,7 +81,7 @@ The server handles one request at a time.
 
 ### 2. API models (paid, through OpenRouter)
 
-Every paid script refuses to call an API without `--i-approve-spend` and stops at `--max-usd`. Run it with `--dry-run` first to get a cost estimate.
+Paid scripts require `--i-approve-spend`; `--max-usd` is checked after completed scoring batches or generator calls, so in-flight requests can exceed the limit. Run with `--dry-run` to estimate cost. The costs below describe the original runs, not guaranteed current endpoint prices.
 
 | System | Command | Scope | Approx. cost |
 |---|---|---|---|
@@ -72,11 +89,43 @@ Every paid script refuses to call an API without `--i-approve-spend` and stops a
 | Jev, equal 448-token budget | `run_rerank.py --model jev --qtype all --dataset touche news robust04 --passage-tokens 448` | 3 collections | $1.4 |
 | Clef 27B (`cloudflare/clef`) | `run_rerank.py --model clef --qtype all --dataset dl trec-covid robust04` | 7 collections | $11.7 |
 | Qwen3-235B P(yes) | `run_rerank.py --model qwen235-yesno --dataset dl trec-covid nfcorpus robust04` | 8 collections | $2.8 |
-| RQ3: Jev scoring and 3 generators | `rag_score.py ...`, then `rag_run_final.py --budget 6` | 2 × 1,000 questions | $6.9 incl. pilots |
+| RQ3: Jev scoring and 3 generators | Explicit commands below | 2 × 1,000 questions | $6.9 incl. pilots |
 
 The same-base Qwen3.8-27B P(yes) run (`--model qwen27base-yesno`) goes through Cloudflare, which limits new OpenRouter accounts to 20 requests per minute. Set `CHOICERANK_RPM=18` for it.
 
 All judgments are cached, so interrupted runs resume where they stopped. API models can change behind a fixed name; we pin the Jev snapshot, and `runs/manifest.jsonl` records the date of every run.
+
+Additional paid ranking configurations in the manuscript:
+
+```bash
+python scripts/run_rerank.py --model qwen235-graded --dataset dl trec-covid nfcorpus robust04 --dry-run
+python scripts/run_rerank.py --model qwen27base-yesno --dataset dl19 dl20 trec-covid --dry-run
+python scripts/run_rerank.py --model jev --qtype all --dataset novel --dry-run
+```
+
+Replace `--dry-run` with `--i-approve-spend --max-usd N` using your chosen dollar limit to execute paid commands. This also applies to the Jev equal-budget and Clef commands in the table. Set `CHOICERANK_RPM=18` for the Clef-base endpoint (PowerShell: `$env:CHOICERANK_RPM = '18'`).
+
+RQ3 scoring and generation, repeated for both datasets:
+
+```bash
+python scripts/rag_score.py --model bge-m3 --dataset musique --split calib pilot final
+python scripts/rag_score.py --model bge-m3 --dataset nq --split calib pilot final
+python scripts/rag_score.py --model jev --dataset musique --split calib pilot final --dry-run
+python scripts/rag_score.py --model jev --dataset nq --split calib pilot final --dry-run
+python scripts/rag_generate.py --dataset musique --split pilot --gen qwen/qwen-2.5-7b-instruct --dry-run
+python scripts/rag_generate.py --dataset nq --split pilot --gen qwen/qwen-2.5-7b-instruct --dry-run
+```
+
+Execute the Jev scoring commands with a chosen spending limit before generating answers. The pilot commands document the original design-stage evaluations; the current code includes later exploratory policies, so replaying it does not recreate the historical lock process. For the final protocol, `python scripts/rag_run_final.py --i-approve-spend --budget 6` runs both datasets and all three generators, using cached calls and allocating the remaining budget to each step. The raw-threshold additions are post-hoc. Fixed-policy RAG quality claims compare Jev with bge; Qwen8B has not been evaluated downstream.
+
+The answer-mask perturbation uses existing gold labels and inserts an answer-location marker; it does not identify a reasoning mechanism:
+
+```bash
+python scripts/rag_score.py --model bge-m3 --dataset musique --split final --mask-answers
+python scripts/rag_score.py --model jev --dataset musique --split final --mask-answers --dry-run
+```
+
+The Qwen0.6B wording diagnostic can be recomputed with `python scripts/review3_analyses.py musique_mechanism`. This command loads the local model and reruns scoring; the existing `results/r3_musique_mechanism.csv` can be inspected without recomputation. The optional future command `python scripts/rag_score.py --model qwen3-reranker-8B --dataset musique --split final` records selection scores only; it is not part of the reported RAG comparison.
 
 ### 3. Evaluate and rebuild tables and figures (free, minutes)
 
@@ -84,17 +133,27 @@ All judgments are cached, so interrupted runs resume where they stopped. API mod
 python scripts/eval_all.py          # results/ranking.csv, results/calibration.csv
 python scripts/significance.py      # paired t-tests, bootstrap CIs, Holm per system pair
 python scripts/review_analyses.py   # readouts, transfer calibration, pool bias, RAG selection, CIs
-python scripts/review3_analyses.py  # paired ECE tests, grading-matched transfer, pooled tests, MuSiQue mechanism
+python scripts/review3_analyses.py transfer robust meta equiv sensitivity eqctx yesno_fallback incoll calib_diff
 python scripts/depth_analysis.py    # reranking-depth simulation
 python scripts/rag_summary.py       # RQ3 tests -> paper/tables/rag.tex
 python scripts/make_tables.py && python scripts/make_appendix.py && python scripts/make_figures.py   # -> paper/tables, paper/figures
+python scripts/reproduction_manifest.py  # full input hashes, split IDs, package and analysis provenance
+python -m unittest discover -s tests -v
 ```
+
+`sensitivity` writes `results/r3_meta_sensitivity.csv` and the normal-versus-mKH appendix table. `make_tables.py` writes a compact main ranking table and the full appendix table. The reliability figure includes bge, Qwen8B, and Jev/Laya Noul. `rag_summary.py` verifies the complete final question-policy grid and invalidates scores when the generation SHA-256 changes; partial runs are rejected unless `rag_eval.py --allow-partial` is explicitly used for exploratory analysis.
+
+Build the multi-file manuscript from the `paper/` directory with `tectonic main.tex`, or upload the paper directory to Overleaf. Historical cached outputs are the basis for exact numerical verification. Earlier run manifests did not record Hugging Face weight commits, so the exact historical model revisions cannot be recovered from architecture strings. The reproduction manifest records complete hashes of the downloaded inputs; preserve it and the original cached runs, and pin model/dataset revisions for new evaluations.
 
 ## Design notes
 
 These are disclosed in the paper:
 - **Readouts:** the per-collection probability readout (strict vs lenient) was chosen after observing TREC-COVID. Both readouts are reported in the appendix.
-- **RQ3 protocol:** policies, thresholds and tested comparisons were locked after the pilot split and before any final-split generation. The ±2 F1 equivalence tests are post-hoc.
+- **RQ3 protocol:** primary ranker comparisons and comparisons against top-3 and adaptive selection were fixed after the pilot split. Top-2, top-5, raw-probability thresholds, and the ±2 F1 equivalence tests are exploratory additions.
+- **RQ3 comparisons:** top-3 and Adaptive-k were the locked threshold-rule comparators. Top-2/top-5 comparisons were added later and are exploratory; equivalence margins and raw-threshold additions are post-hoc.
+- **Label use:** raw RAG thresholds still use a readout selected on labelled calibration questions. They are not label-free. RQ2 raw Noul evaluation requires no target-label fitting.
+- **Transfer calibration:** Group means within-DL/within-dense-BEIR transfer, grouped by numeric relevance threshold and weighted equally per source collection; it does not guarantee matching relevance semantics.
+- **Splits:** IDs are disjoint, but one related MuSiQue question with a different ID occurs in pilot and final; the manifest records normalized overlaps.
 
 ## Licensing
 

@@ -1,4 +1,4 @@
-"""Free re-analyses requested by internal review round 3 (REVIEWS.md). All computed from cached runs.
+"""Review analyses from cached runs, except musique_mechanism which reruns a local model.
 
 Outputs (results/):
   r3_calib_diff.csv       paired query-bootstrap ECE difference vs bge per collection (+Holm) and mean over 9 (2,000 reps)
@@ -25,7 +25,7 @@ import pandas as pd
 from scipy import stats
 from scipy.optimize import minimize
 
-from choicerank import RESULTS_DIR, RUNS_DIR
+from choicerank import RESULTS_DIR, ROOT, RUNS_DIR
 from choicerank.data import ALL, CALIB, DATASETS, load_qrels
 from choicerank.evaluate import _logit, ece, per_query
 from eval_all import read_trec
@@ -288,7 +288,77 @@ def _re_pool(t):
     return np.sum(wr * t.delta) / wr.sum(), np.sqrt(1 / wr.sum())
 
 
+def pooled_inference(t, small_sample=False):
+    """DL point estimate with normal or modified Knapp-Hartung inference.
+
+    Both methods use the same estimated heterogeneity. The small-sample method
+    uses t(k-1) and floors the residual variance multiplier at one (mKH).
+    """
+    if len(t) < 2 or not np.all(np.isfinite(t[["delta", "var"]])) or (t["var"] <= 0).any():
+        raise ValueError("Pooling requires at least two finite effects with positive sampling variances")
+    w = 1 / t["var"]
+    fe = np.sum(w * t.delta) / w.sum()
+    q = np.sum(w * (t.delta - fe) ** 2)
+    k = len(t)
+    tau2 = max(0.0, (q - (k - 1)) / (w.sum() - (w ** 2).sum() / w.sum()))
+    wr = 1 / (t["var"] + tau2)
+    mean = float(np.sum(wr * t.delta) / wr.sum())
+    multiplier = max(1.0, float(np.sum(wr * (t.delta - mean) ** 2) / (k - 1))) if small_sample else 1.0
+    se = float(np.sqrt(multiplier / wr.sum()))
+    reference = stats.t(k - 1) if small_sample else stats.norm
+    c95, c90 = reference.ppf(0.975), reference.ppf(0.95)
+    p_tost = max(reference.sf((mean + EQ_MARGIN) / se), reference.sf((EQ_MARGIN - mean) / se))
+    return dict(diff=mean, se=se, tau2=tau2, variance_multiplier=multiplier,
+                ci95_lo=mean - c95 * se, ci95_hi=mean + c95 * se,
+                ci90_lo=mean - c90 * se, ci90_hi=mean + c90 * se,
+                p=2 * reference.sf(abs(mean / se)), p_tost=p_tost,
+                equivalent=bool(p_tost < 0.05))
+
+
 EQ_MARGIN = 2.0  # nDCG@10 points
+
+
+def sensitivity():
+    """Post-hoc normal versus mKH sensitivity from cached query-level runs; no model calls."""
+    from choicerank.data import DL
+
+    claims = [("jev-score4", "bge-m3", "All-13", ALL),
+              ("jev-score4", "bge-m3", "Without Robust04", [d for d in ALL if d != "robust04"]),
+              ("jev-score4", "qwen3-reranker-8B", "All-13", ALL),
+              ("clef-score4", "qwen27base-yesno", "DL19/20+COVID", ["dl19", "dl20", "trec-covid"])]
+    claims += [(f"jev-{fmt}", base, "DL19-23", DL)
+               for fmt in ("score4", "noul", "choice3") for base in ("bge-m3", "minilm")]
+    claims += [(f"jev-{fmt}", f"clef-{fmt}", "Clef-7", DL + ["trec-covid", "robust04"])
+               for fmt in ("choice3", "noul", "score4")]
+    rows = []
+    for a, b, label, datasets in claims:
+        effects = _deltas(a, b, datasets)
+        if len(effects) < 2:
+            raise ValueError(f"Missing cached comparisons for {a} versus {b}: {label}")
+        for method in ("normal", "mKH"):
+            rows.append(dict(A=a, B=b, collections=label, k=len(effects), method=method,
+                             **pooled_inference(effects, small_sample=method == "mKH")))
+    out = pd.DataFrame(rows)
+    out.to_csv(RESULTS_DIR / "r3_meta_sensitivity.csv", index=False)
+    lines = [r"\begin{table*}[t]", r"\centering", r"\small",
+             r"\caption{Post-hoc sensitivity of pooled ranking inference to small-sample uncertainty. "
+             r"Both methods use the same DerSimonian--Laird heterogeneity estimate; mKH uses a "
+             r"Student-$t$ reference with $k-1$ degrees of freedom and a residual variance multiplier "
+             r"floored at one. Units: nDCG@10 points. A 90\% interval inside $\pm2$ corresponds to "
+             r"the exploratory equivalence criterion; the margin was chosen after observing results.}",
+             r"\label{tab:meta-sensitivity}", r"\begin{tabular}{lrrrr}", r"\toprule",
+             r"Comparison & $k$ & Pooled difference & Normal CI & mKH CI \\", r"\midrule"]
+    labels = [r"Jev S4 -- bge, all (95\%)", r"Jev S4 -- bge, no Robust04 (95\%)",
+              r"Jev S4 -- Qwen8B, all (90\%)", r"Clef S4 -- base, three collections (90\%)"]
+    for (a, b, label, _), display, level in zip(claims[:4], labels, (95, 95, 90, 90)):
+        pair = out[(out.A == a) & (out.B == b) & (out.collections == label)].set_index("method")
+        normal, robust = pair.loc["normal"], pair.loc["mKH"]
+        intervals = [f"[{r[f'ci{level}_lo']:.2f}, {r[f'ci{level}_hi']:.2f}]" for r in (normal, robust)]
+        lines.append(f"{display} & {int(normal.k)} & {normal['diff']:+.2f} & " + " & ".join(intervals) + r" \\")
+    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table*}"]
+    path = ROOT / "paper" / "tables" / "app_meta_sensitivity.tex"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def equiv():
@@ -314,6 +384,6 @@ def equiv():
 
 
 if __name__ == "__main__":
-    for name in sys.argv[1:] or ["transfer", "robust", "meta", "eqctx", "yesno_fallback", "incoll", "calib_diff", "musique_mechanism"]:
+    for name in sys.argv[1:] or ["transfer", "robust", "meta", "equiv", "sensitivity", "eqctx", "yesno_fallback", "incoll", "calib_diff", "musique_mechanism"]:
         globals()[name]()
         print("done", name, flush=True)

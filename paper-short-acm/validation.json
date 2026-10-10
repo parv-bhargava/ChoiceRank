@@ -1,0 +1,11 @@
+{
+  "pdf_pages": 4,
+  "references_included": true,
+  "chart_panels": 3,
+  "original_files_verified": 27,
+  "original_unchanged": true,
+  "chart_sources_unchanged": true,
+  "main_tex_sha256": "324542ea261f85c62a93e68ccd770069fef0bd589e6f15d85941dc018b574ed0",
+  "main_pdf_sha256": "ad6715536fe0806bd4c711ce3b34d905ced303c64e53969e6921132709f0f072",
+  "chart_script_sha256": "ea1a558141ed7a92124a2a319ae1ec51750ebf5cd9074e26e596cac328c3da9c"
+}

@@ -56,7 +56,7 @@ DATASETS: dict[str, DatasetSpec] = {
     "signal": DatasetSpec("signal", B.format("signal1m"), 1),
     "news": DatasetSpec("news", B.format("trec-news"), 1, dense_pool=True, readout="lenient"),  # 1 = some useful info
     "robust04": DatasetSpec("robust04", B.format("robust04"), 1, dense_pool=True),  # 1 = relevant, 2 = highly
-    # Post-cutoff contamination checks (review feedback). Both predate the Sept-2026 decision models.
+    # Newer-content benchmark checks. Both predate the Sept-2026 decision models; their training cutoffs are unknown.
     # NovelEval-2306 (Sun et al. 2023): 21 queries x 20 Google-retrieved passages; 0/1/2, 1 = partially relevant.
     "noveleval": DatasetSpec("noveleval", "noveleval", 1, dense_pool=True, readout="lenient",
                              qrels_url="https://raw.githubusercontent.com/sunnweiwei/RankGPT/main/NovelEval/qrels.txt"),
@@ -72,7 +72,7 @@ BEIR8 = ["trec-covid", "nfcorpus", "touche", "dbpedia", "scifact", "signal", "ne
 ALL = DL + BEIR8
 CALIB = [d for d in ALL if DATASETS[d].dense_pool]  # collections with judged negatives
 CORE = ["dl19", "dl20", "trec-covid", "nfcorpus", "scifact"]  # original 2-week core (kept for reference)
-NOVEL = ["noveleval", "futurequery"]  # post-cutoff checks, reported separately (not in ALL)
+NOVEL = ["noveleval", "futurequery"]  # newer-content checks, reported separately (not in ALL)
 GROUPS = {"core": CORE, "all": ALL, "dl": DL, "beir8": BEIR8, "calib": CALIB, "novel": NOVEL}
 
 

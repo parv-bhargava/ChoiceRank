@@ -7,8 +7,8 @@
 Decision models are asked all three formats in one call (qtype=all); the parquet keeps every readout.
 
 --mask-answers (review feedback): replace every gold answer string (and alias) in passage titles and texts with
-"[MASKED]" before scoring, to test whether a ranker's preference for the answer-bearing hop depends on recognising the
-answer. Output: {dataset}.{split}.{model}-masked.parquet; cached under a separate judge id.
+"[MASKED]" before scoring. This is a descriptive perturbation: the marker reveals answer location and does not
+isolate reasoning from memorization. Output: {dataset}.{split}.{model}-masked.parquet; separate cache id.
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ from choicerank import ROOT, RUNS_DIR
 from choicerank.prompts import QUESTIONS, p_lenient, readout
 from choicerank.rag import load_split
 
-PAID = {"jev", "clef", "clef-flash"}
+PAID = {"jev", "clef", "clef-flash", "qwen235-yesno", "qwen27base-yesno", "qwen235-graded"}
 OUT = RUNS_DIR / "rag"
 
 
@@ -47,7 +47,8 @@ def main():
     items_of = (lambda d, sp: [mask_answers(it) for it in load_split(d, sp)]) if args.mask_answers else load_split
     tag = args.model + ("-masked" if args.mask_answers else "")
     paid = args.model in PAID
-    decision = args.model not in ("minilm",) and not args.model.startswith("bge-m3")
+    decision = not (args.model == "minilm" or args.model.startswith(("bge-m3", "qwen3-reranker-"))
+                    or args.model.endswith(("-yesno", "-graded")))
     qtype = "all" if decision else "choice3"
 
     if args.dry_run or (paid and not args.i_approve_spend):

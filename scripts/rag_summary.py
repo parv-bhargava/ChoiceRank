@@ -6,13 +6,15 @@ Pre-registered comparisons (PROGRESS.md, locked before final-split generation):
   (b) calibrated rule: jev:floor2+thr0.3 vs jev:top3 and vs jev:adaptive
   (c) generator input tokens
 Paired two-sided t-tests over questions on F1. Holm correction is applied separately to family (a) and family (b)
-within each (dataset, generator); (b) also reports 95% CIs and TOST equivalence tests with a +/-2 F1 margin, plus a
-test pooled over the three generators. (Revised 2026-10-04 after internal review: families were previously mixed.)
+within each (dataset, generator); the four-comparison family also includes exploratory top-2/top-5 comparisons
+not in the lock record. TOST uses a post-hoc +/-2 F1 margin without correction; pooling over generators is exploratory.
+(Revised 2026-10-04 after internal review: families were previously mixed.)
 """
 
 from __future__ import annotations
 
 import sys
+import json
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -38,6 +40,7 @@ def holm(ps):
 
 
 B_REFS = ["jev:top2", "jev:top3", "jev:top5", "jev:adaptive"]
+PRIMARY_B_REFS = {"jev:top3", "jev:adaptive"}
 MARGIN = 2.0  # F1 points, equivalence margin for TOST
 
 
@@ -53,10 +56,18 @@ def paired(x, y, meta):
 
 
 def per_question(ds, gen):
-    """Re-run rag_eval logic for the final split if needed, then load per-question scores."""
+    """Validate source completeness and rebuild stale or unverified per-question scores."""
+    from scripts.rag_eval import file_hash, validate_grid
+    from scripts.rag_generate import FINAL_POLICIES
+    from choicerank.rag import load_split
+
     slug = gen.replace("/", "_")
     p = RUNS_DIR / "rag" / f"{ds}.final.per_q.{slug}.parquet"
-    if not p.exists():
+    source = RUNS_DIR / "rag" / f"{ds}.final.gen.{slug}.parquet"
+    validate_grid(pd.read_parquet(source), [it.qid for it in load_split(ds, "final")], FINAL_POLICIES)
+    metadata = p.with_suffix(".metadata.json")
+    provenance = json.loads(metadata.read_text(encoding="utf-8")) if metadata.exists() else {}
+    if not p.exists() or not provenance.get("complete_grid") or provenance.get("generation_sha256") != file_hash(source):
         import subprocess
 
         subprocess.run([sys.executable, "scripts/rag_eval.py", "--dataset", ds, "--split", "final", "--gen", gen],
@@ -82,7 +93,10 @@ def main():
             fams = {"a: jev vs bge": [(f"jev:{p}", f"bge-m3:{p}") for p in SHARED],
                     "b: calibrated rule": [("jev:floor2+thr0.3", p) for p in B_REFS]}
             for kind, pairs in fams.items():
-                rows = [paired(wide[a], wide[b], dict(dataset=ds, gen=GENS[gen], comparison=kind, A=a, B=b))
+                rows = [paired(wide[a], wide[b], dict(dataset=ds, gen=GENS[gen], comparison=kind, A=a, B=b,
+                                                    design="primary_after_pilot" if kind.startswith("a") or b in PRIMARY_B_REFS
+                                                    else "exploratory_not_in_lock_record",
+                                                    equivalence_design="posthoc_margin_uncorrected"))
                         for a, b in pairs]
                 for r, ph in zip(rows, holm([r["p"] for r in rows])):
                     r["p_holm"] = ph
@@ -93,7 +107,8 @@ def main():
         if len(ws) == len(GENS):
             mean = sum(ws) / len(ws)
             rows = [paired(mean["jev:floor2+thr0.3"], mean[b], dict(dataset=ds, gen="pooled", comparison="b: calibrated rule",
-                                                                    A="jev:floor2+thr0.3", B=b)) for b in B_REFS]
+                                                                    A="jev:floor2+thr0.3", B=b, design="exploratory_pooled",
+                                                                    equivalence_design="posthoc_margin_uncorrected")) for b in B_REFS]
             for r, ph in zip(rows, holm([r["p"] for r in rows])):
                 r["p_holm"] = ph
             tests += rows
@@ -120,9 +135,10 @@ def write_latex(S, T):
     sig = T[T.comparison.str.startswith("a")].set_index(["dataset", "gen", "A"])
     out = [r"\begin{table*}[t]", r"\centering", r"\footnotesize", r"\setlength{\tabcolsep}{4pt}",
            r"\caption{RQ3: answer F1 on 1{,}000 held-out questions per dataset, by context-selection policy and generator. "
-           r"Avg.\ $n$: mean number of passages given to the generator (Qwen2.5-7B). $^\dagger$: Jev significantly better than "
+           r"Avg.\ $n$: mean number of selected passages (independent of generator). $^\dagger$: Jev significantly better than "
            r"bge-reranker-v2-m3 under the same policy (paired $t$-test, Holm-corrected, $p<0.05$). "
-           r"Policies, thresholds, and comparisons were fixed on separate pilot questions before this evaluation.}",
+           r"Displayed policies and ranker-effect comparisons were fixed after separate pilot questions. "
+           r"Thresholds use a readout selected with labelled calibration questions; the $P>0.3$ rows are Platt-scaled.}",
            r"\label{tab:rag}",
            r"\begin{tabular}{l" + "r" * len(cols) + "rr}", r"\toprule",
            " & " + " & ".join(rf"\multicolumn{{{sum(1 for c in cols if c[0] == d)}}}{{c}}{{{DS[d]}}}" for d in DS

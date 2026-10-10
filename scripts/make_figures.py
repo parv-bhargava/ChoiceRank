@@ -24,10 +24,10 @@ from choicerank.evaluate import labels_for, reliability
 
 OUT = ROOT / "paper" / "figures"
 SYSTEMS = [  # (run system, label, color, marker) -- fixed categorical order, never cycled
-    ("minilm", "MiniLM-L6", "#2a78d6", "o"),
+    ("qwen3-reranker-8B", "Qwen3-Reranker-8B", "#2a78d6", "o"),
     ("bge-m3", "bge-v2-m3", "#eb6834", "s"),
-    ("laya-choice3", "Laya (C3)", "#1baf7a", "^"),
-    ("jev-choice3", "Jev 1.13 (C3)", "#eda100", "D"),
+    ("laya-noul", "Laya (Noul)", "#1baf7a", "^"),
+    ("jev-noul", "Jev 1.13 (Noul)", "#eda100", "D"),
 ]
 PANELS = [("TREC DL19–23", ["dl19", "dl20", "dl21", "dl22", "dl23"]),
           ("BEIR (4 judged sets)", ["trec-covid", "dbpedia", "news", "robust04"])]
@@ -72,7 +72,7 @@ def main():
         ax.set_xlabel("Predicted P(relevant)")
     axes[0].set_ylabel("Fraction relevant")
     handles, labels = axes[0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="outside lower center", ncol=4, frameon=False, fontsize=6.5,
+    fig.legend(handles, labels, loc="outside lower center", ncol=2, frameon=False, fontsize=6.5,
                handlelength=1.6, columnspacing=0.9, handletextpad=0.4)
     for ext in ("pdf", "png"):
         fig.savefig(OUT / f"reliability.{ext}", dpi=300)

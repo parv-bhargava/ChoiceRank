@@ -1,0 +1,148 @@
+{
+  "ranking": [
+    {
+      "system": "jev-score4",
+      "label": "Jev S4",
+      "mean": 56.10059436793459
+    },
+    {
+      "system": "jev-noul",
+      "label": "Jev Noul",
+      "mean": 55.96094975306645
+    },
+    {
+      "system": "qwen3-reranker-8B",
+      "label": "Qwen8B",
+      "mean": 55.98890005074604
+    },
+    {
+      "system": "qwen3-reranker-4B",
+      "label": "Qwen4B",
+      "mean": 55.67061413578668
+    },
+    {
+      "system": "bge-m3",
+      "label": "bge",
+      "mean": 53.673873161454466
+    },
+    {
+      "system": "qwen3-reranker-0.6B",
+      "label": "Qwen0.6B",
+      "mean": 52.90692760772428
+    },
+    {
+      "system": "minilm",
+      "label": "MiniLM",
+      "mean": 51.89239684791634
+    },
+    {
+      "system": "bm25",
+      "label": "BM25",
+      "mean": 41.93411298524328
+    },
+    {
+      "system": "laya-noul",
+      "label": "Laya Noul",
+      "mean": 40.253077059354524
+    },
+    {
+      "system": "jeff-0.8b-noul",
+      "label": "Jeff Noul",
+      "mean": 39.42653939103502
+    }
+  ],
+  "calibration": [
+    {
+      "system": "bge-m3",
+      "label": "bge",
+      "raw": 19.96578594202188,
+      "group": 6.924624568126241
+    },
+    {
+      "system": "qwen3-reranker-8B",
+      "label": "Qwen8B",
+      "raw": 21.57641497489817,
+      "group": 9.563464615096422
+    },
+    {
+      "system": "laya-noul",
+      "label": "Laya Noul",
+      "raw": 10.737342178867289,
+      "group": 9.454775035514656
+    },
+    {
+      "system": "jeff-0.8b-noul",
+      "label": "Jeff Noul",
+      "raw": 25.61195331835764,
+      "group": 8.555659940250285
+    },
+    {
+      "system": "jev-noul",
+      "label": "Jev Noul",
+      "raw": 14.981629913363541,
+      "group": 6.812934105317587
+    }
+  ],
+  "rag_effects": [
+    {
+      "dataset": "musique",
+      "generator": "Qwen2.5-7B",
+      "label": "Qwen2.5-7B",
+      "delta": 6.069621826402012,
+      "lo": 3.252277098180635,
+      "hi": 8.88696655462339,
+      "p_holm": 5.156388092777323e-05
+    },
+    {
+      "dataset": "musique",
+      "generator": "Llama-3.1-8B",
+      "label": "Llama-3.1",
+      "delta": 7.798468986294065,
+      "lo": 5.142312480465538,
+      "hi": 10.454625492122592,
+      "p_holm": 2.2202013229221866e-08
+    },
+    {
+      "dataset": "musique",
+      "generator": "Qwen3-30B-A3B",
+      "label": "Qwen3-30B",
+      "delta": 8.002012342914098,
+      "lo": 5.351639553271189,
+      "hi": 10.652385132557006,
+      "p_holm": 1.72057032263111e-08
+    },
+    {
+      "dataset": "nq",
+      "generator": "Qwen2.5-7B",
+      "label": "Qwen2.5-7B",
+      "delta": 0.6911635933277472,
+      "lo": -1.224148157587694,
+      "hi": 2.6064753442431887,
+      "p_holm": 1.0
+    },
+    {
+      "dataset": "nq",
+      "generator": "Llama-3.1-8B",
+      "label": "Llama-3.1",
+      "delta": 0.0006085546720221,
+      "lo": -2.038611693035393,
+      "hi": 2.039828802379437,
+      "p_holm": 1.0
+    },
+    {
+      "dataset": "nq",
+      "generator": "Qwen3-30B-A3B",
+      "label": "Qwen3-30B",
+      "delta": 0.2408416756961649,
+      "lo": -1.5192291760833123,
+      "hi": 2.0009125274756423,
+      "p_holm": 1.0
+    }
+  ],
+  "source_sha256": {
+    "ranking.csv": "ab4757f06ded3d2cd05b5d7ca56590632a64d593929d2dbaad238597f725afab",
+    "calibration.csv": "92afbdcf92d300f1c0453b71e27b714f0c9775767482ceaaf81d6a81219e98bc",
+    "r3_transfer.csv": "e640bea6a741ed0d4bacf1f656dad8a98f1087993dc676ef5207fe6ee3495923",
+    "rag_final_tests.csv": "73f6a31f5f7281cd35b0991b714d21c7576b1fb4512a03477c2e58fb717fa96b"
+  }
+}

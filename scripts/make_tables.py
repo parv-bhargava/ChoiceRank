@@ -43,7 +43,12 @@ GROUPS = [
 ]
 
 
-def ranking_table(rank: pd.DataFrame, sig: pd.DataFrame) -> str:
+MAIN_RANK_SYSTEMS = {"bm25", "minilm", "bge-m3", "qwen3-reranker-0.6B", "qwen3-reranker-4B",
+                     "qwen3-reranker-8B", "qwen235-yesno", "qwen27base-yesno", "qwen08base-yesno",
+                     "laya-noul", "jeff-0.8b-noul", "clef-score4", "jev-noul", "jev-score4"}
+
+
+def ranking_table(rank: pd.DataFrame, sig: pd.DataFrame, compact=False) -> str:
     p = rank.pivot(index="system", columns="dataset", values="nDCG@10")
     # Averages only over complete collection sets: subset systems (Clef, Qwen3-235B) get "--" (no subset means)
     p["dlavg"] = p[DL].mean(axis=1, skipna=False)
@@ -51,6 +56,8 @@ def ranking_table(rank: pd.DataFrame, sig: pd.DataFrame) -> str:
     p["all"] = p[DL + BEIR8].mean(axis=1, skipna=False)
     cols = DL + ["dlavg"] + BEIR8 + ["beiravg", "all"]
     groups = [(g, [(s, l) for s, l in rows if s in p.index]) for g, rows in GROUPS]
+    if compact:
+        groups = [(g, [(s, l) for s, l in rows if s in MAIN_RANK_SYSTEMS]) for g, rows in groups]
     groups = [(g, rows) for g, rows in groups if rows]  # optional baselines appear once their runs exist
     systems = [s for _, rows in groups for s, _ in rows]
     best = {c: p.loc[systems, c].max() for c in cols}
@@ -90,7 +97,13 @@ def ranking_table(rank: pd.DataFrame, sig: pd.DataFrame) -> str:
         if gi < len(groups) - 1:
             lines.append(r"\addlinespace[1pt]")
     lines += [r"\bottomrule", r"\end{tabular}", r"\end{table*}"]
-    return "\n".join(lines)
+    table = "\n".join(lines)
+    if compact:
+        table = table.replace("Best per column in bold.",
+                              r"Best displayed configuration per column in bold; all formats and controls appear in Appendix Table~\ref{tab:ranking-full}.")
+    else:
+        table = table.replace(r"\label{tab:ranking}", r"\label{tab:ranking-full}")
+    return table
 
 
 def calibration_table(cal: pd.DataFrame, transfer: pd.DataFrame | None = None) -> str:
@@ -130,7 +143,8 @@ def calibration_table(cal: pd.DataFrame, transfer: pd.DataFrame | None = None) -
              r"\caption{Calibration of $P(\text{relevant})$ on the nine collections with judged negatives "
              r"(DL19--23, TREC-COVID, DBPedia, News, Robust04; unweighted mean over collections, ECE$\times$100, 15 bins, judged pairs only). "
              r"Raw: no recalibration. Transfer (no target labels): Platt scaling fit on the other eight collections pooled (All) or only on "
-             r"those with the target's relevance grading (Match.: DL$\to$DL, BEIR$\to$BEIR). "
+             r"the same numeric-threshold group, balancing source collections (Group: DL$\to$DL, BEIR$\to$BEIR); "
+             r"the group need not share identical relevance semantics. All weights pairs equally. "
              r"In-coll.: Platt with 10$\times$ repeated 5-fold query cross-fitting on the target collection (needs target labels; SD $\le$0.6). "
              r"C3/S4: Choice-3/Score-4. $^\dagger$Strict readout on every collection instead of the per-collection policy (Section~\ref{sec:setup}). "
              r"$^\ast$Seven of the nine collections (no DBPedia, News). Bold: best among systems on all nine.}",
@@ -138,7 +152,7 @@ def calibration_table(cal: pd.DataFrame, transfer: pd.DataFrame | None = None) -
              r"\begin{tabular}{lrrrrrr}", r"\toprule",
              r" & \multicolumn{4}{c}{ECE} & & \\ \cmidrule(lr){2-5}",
              r" & & \multicolumn{2}{c}{Transfer} & & & \\ \cmidrule(lr){3-4}",
-             r"System & Raw & All & Match. & In-coll. & Brier & $\bar{p}$ \\", r"\midrule"]
+             r"System & Raw & All & Group & In-coll. & Brier & $\bar{p}$ \\", r"\midrule"]
     lat = lambda v: "--" if pd.isna(v) else (f"{v:.1f}" if v < 10 else f"{v:.0f}")
     for key, label in rows:
         r = agg.loc[key]
@@ -207,7 +221,8 @@ def main():
     cal = pd.read_csv(RESULTS_DIR / "calibration.csv")
     sig = pd.read_csv(RESULTS_DIR / "significance.csv")
     trunc = pd.read_csv(RESULTS_DIR / "truncation.csv")
-    (OUT / "ranking.tex").write_text(ranking_table(rank, sig), encoding="utf-8")
+    (OUT / "ranking.tex").write_text(ranking_table(rank, sig, compact=True), encoding="utf-8")
+    (OUT / "app_ranking_full.tex").write_text(ranking_table(rank, sig), encoding="utf-8")
     tr = RESULTS_DIR / "calib_transfer.csv"
     (OUT / "calibration.tex").write_text(calibration_table(cal, pd.read_csv(tr) if tr.exists() else None), encoding="utf-8")
     (OUT / "longdoc.tex").write_text(longdoc_table(rank, trunc), encoding="utf-8")

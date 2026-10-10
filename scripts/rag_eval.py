@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from pathlib import Path
@@ -19,15 +20,48 @@ from choicerank import RESULTS_DIR, RUNS_DIR
 from choicerank.rag import contains, exact_match, f1, load_split
 
 
+def validate_grid(df, expected_qids, expected_policies=None):
+    """Reject partial or duplicated evaluations before producing a final table."""
+    required = {"qid", "policy", "answer", "pids", "n_passages", "in_tokens"}
+    missing = required - set(df.columns)
+    if missing:
+        raise ValueError(f"Generation file lacks columns: {sorted(missing)}")
+    if df.empty or df.duplicated(["qid", "policy"]).any():
+        raise ValueError("Generation grid is empty or contains duplicate question-policy rows")
+    if df[list(required)].isna().any().any():
+        raise ValueError("Generation grid contains missing answers or selection metadata")
+    expected_qids = set(expected_qids)
+    policies = set(df.policy)
+    if expected_policies is not None and policies != set(expected_policies):
+        raise ValueError(f"Policy grid mismatch: missing {sorted(set(expected_policies) - policies)}, "
+                         f"unexpected {sorted(policies - set(expected_policies))}")
+    for policy, rows in df.groupby("policy"):
+        qids = set(rows.qid)
+        if qids != expected_qids:
+            raise ValueError(f"Incomplete question grid for {policy}: "
+                             f"{len(expected_qids - qids)} missing, {len(qids - expected_qids)} unexpected")
+
+
+def file_hash(path):
+    with open(path, "rb") as stream:
+        return hashlib.file_digest(stream, "sha256").hexdigest()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset", required=True, choices=["musique", "nq"])
     ap.add_argument("--split", required=True, choices=["pilot", "main", "final"])
     ap.add_argument("--gen", required=True)
+    ap.add_argument("--allow-partial", action="store_true", help="explicit exploratory evaluation of a partial run")
     args = ap.parse_args()
     slug = args.gen.replace("/", "_")
-    df = pd.read_parquet(RUNS_DIR / "rag" / f"{args.dataset}.{args.split}.gen.{slug}.parquet")
+    source = RUNS_DIR / "rag" / f"{args.dataset}.{args.split}.gen.{slug}.parquet"
+    df = pd.read_parquet(source)
     items = {it.qid: it for it in load_split(args.dataset, args.split)}
+    if not args.allow_partial:
+        from scripts.rag_generate import FINAL_POLICIES
+
+        validate_grid(df, items, FINAL_POLICIES if args.split == "final" else None)
     recs = []
     for r in df.itertuples():
         it = items[r.qid]
@@ -51,7 +85,11 @@ def main():
     RESULTS_DIR.mkdir(exist_ok=True)
     out = RESULTS_DIR / f"rag_{args.dataset}_{args.split}_{slug}.csv"
     agg.sort_values("F1", ascending=False).to_csv(out)
-    per.to_parquet(RUNS_DIR / "rag" / f"{args.dataset}.{args.split}.per_q.{slug}.parquet", index=False)
+    per_path = RUNS_DIR / "rag" / f"{args.dataset}.{args.split}.per_q.{slug}.parquet"
+    per.to_parquet(per_path, index=False)
+    per_path.with_suffix(".metadata.json").write_text(json.dumps(
+        {"generation_sha256": file_hash(source), "complete_grid": not args.allow_partial,
+         "questions": len(items), "policies": sorted(df.policy.unique())}, indent=2) + "\n", encoding="utf-8")
     print(agg.sort_values("F1", ascending=False).round(1).to_string())
 
 

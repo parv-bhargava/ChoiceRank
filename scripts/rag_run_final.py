@@ -53,11 +53,16 @@ def main():
     ap.add_argument("--budget", type=float, default=6.0)
     ap.add_argument("--workers", type=int, default=16)
     args = ap.parse_args()
+    LOG.parent.mkdir(parents=True, exist_ok=True)
     for ds in ("musique", "nq"):
         if not (ROOT / "runs" / "rag" / f"{ds}.final.jev.parquet").exists():
+            left = args.budget - final_spend()
+            if left <= 0:
+                log("STOP: global budget reached before scoring")
+                return
             log(f"scoring {ds} final with Jev")
             subprocess.run([PY, "scripts/rag_score.py", "--model", "jev", "--dataset", ds, "--split", "final",
-                            "--i-approve-spend", "--max-usd", "0.7"], cwd=ROOT, check=True)
+                            "--i-approve-spend", "--max-usd", f"{min(0.7, left):.6f}"], cwd=ROOT, check=True)
     for g in GENS:
         for ds in ("musique", "nq"):
             spent = final_spend()
