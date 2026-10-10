@@ -383,6 +383,57 @@ def equiv():
     pd.DataFrame(out).to_csv(RESULTS_DIR / "r3_equiv.csv", index=False)
 
 
+def _musique_decomposition():
+    import json as _json
+    dec = {}
+    for line in open(Path(__file__).resolve().parent.parent / "data" / "rag" / "musique_ans_v1.0_dev.jsonl", encoding="utf-8"):
+        r = _json.loads(line)
+        dec["musique:" + r["id"]] = [str(h["paragraph_support_idx"]) for h in r["question_decomposition"]]
+    return dec
+
+
+def musique_masked():
+    """MuSiQue final: top-1 hop position with and without gold-answer masking (rag_score.py --mask-answers).
+    Descriptive only: the [MASKED] marker itself reveals where the answer occurred."""
+    from choicerank.rag import load_split
+    items = {it.qid: it for it in load_split("musique", "final")}
+    dec = _musique_decomposition()
+    out = []
+    for label, f, col in [("Jev S4", "musique.final.jev", "score_score4"), ("Jev S4 masked", "musique.final.jev-masked", "score_score4"),
+                          ("Jev Noul", "musique.final.jev", "p_noul"), ("Jev Noul masked", "musique.final.jev-masked", "p_noul"),
+                          ("bge", "musique.final.bge-m3", "score"), ("bge masked", "musique.final.bge-m3-masked", "score")]:
+        t = pd.read_parquet(RUNS_DIR / "rag" / f"{f}.parquet")
+        top = {q: g.sort_values([col, "orig_rank"], ascending=[False, True]).pid.iloc[0] for q, g in t.groupby("qid")}
+        qs = sorted(top)
+        out.append(dict(ranker=label,
+                        hit1=100 * np.mean([any(p.pid == top[q] and p.gold for p in items[q].passages) for q in qs]),
+                        last_hop1=100 * np.mean([top[q] == dec[q][-1] for q in qs]),
+                        first_hop1=100 * np.mean([top[q] == dec[q][0] for q in qs])))
+    pd.DataFrame(out).round(1).to_csv(RESULTS_DIR / "r3_musique_masked.csv", index=False)
+
+
+def rag_thrraw():
+    """Post-hoc raw-probability thresholds (jev:thrRaw*) on the RQ3 final splits, compared with the Platt threshold,
+    top-3, and Adaptive-k (paired t-tests over questions, unadjusted). The raw readout was chosen on labelled
+    calibration questions, so these thresholds avoid Platt fitting but are not label-free."""
+    out = []
+    for f in sorted((RUNS_DIR / "rag").glob("*.final.per_q.*.parquet")):
+        ds, gen = f.name.split(".")[0], f.name.split("final.per_q.")[1][:-8]
+        d = pd.read_parquet(f)
+        w = d.pivot(index="qid", columns="policy", values="F1")
+        for pol in ["jev:thrRaw0.3", "jev:thrRaw0.5", "jev:thrRaw0.7", "jev:thrPlatt0.3", "jev:floor2+thr0.3",
+                    "jev:top2", "jev:top3", "jev:adaptive"]:
+            g = d[d.policy == pol]
+            r = dict(ds=ds, gen=gen[:12], policy=pol, F1=100 * g["F1"].mean(), n=g["n"].mean(), empty=100 * g["empty"].mean())
+            if pol.startswith("jev:thrRaw"):
+                for ref in ["jev:thrPlatt0.3", "jev:top3", "jev:adaptive"]:
+                    k = ref.split(":")[1]
+                    r["d_" + k] = 100 * (w[pol] - w[ref]).mean()
+                    r["p_" + k] = stats.ttest_rel(w[pol], w[ref]).pvalue
+            out.append(r)
+    pd.DataFrame(out).to_csv(RESULTS_DIR / "rag_thrraw.csv", index=False)
+
+
 if __name__ == "__main__":
     for name in sys.argv[1:] or ["transfer", "robust", "meta", "equiv", "sensitivity", "eqctx", "yesno_fallback", "incoll", "calib_diff", "musique_mechanism"]:
         globals()[name]()
