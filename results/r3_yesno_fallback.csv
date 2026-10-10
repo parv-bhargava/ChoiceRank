@@ -1,0 +1,3 @@
+judge,n,neither_pct,only_one_pct
+llm:qwen235-yesno,82728,0.0,0.7663668890822938
+llm:qwen27base-yesno,3900,0.0,0.0

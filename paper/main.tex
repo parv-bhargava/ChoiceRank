@@ -1,0 +1,40 @@
+% ACM sigconf short paper (arXiv preprint first; SIGIR/ECIR short or IR workshop later).
+% Build: C:\Users\parvb\tools\tectonic\tectonic.exe main.tex   (or upload paper/ to Overleaf)
+% Numbers in tables/ and figures/ are generated: scripts/eval_all.py -> significance.py -> make_tables.py / make_figures.py
+\documentclass[sigconf,nonacm]{acmart}
+\usepackage{booktabs}
+\emergencystretch=1.5em
+\settopmatter{printacmref=false}
+\setcopyright{none}
+\renewcommand\footnotetextcopyrightpermission[1]{}
+\pagestyle{plain}
+
+
+\begin{document}
+\title{Typed Decision Models as Passage Rerankers: Effectiveness, Calibration, and Context Selection}
+
+\author{Parv Bhargava}
+\affiliation{\institution{Independent Researcher}\country{}}
+\email{parvbhargavapro@gmail.com}
+
+\begin{abstract}
+\input{sections/abstract}
+\end{abstract}
+
+\keywords{reranking, decision models, calibration, retrieval-augmented generation, BEIR}
+
+\maketitle
+
+\input{sections/intro}
+\input{sections/related}
+\input{sections/method}
+\input{sections/experiments}
+\input{sections/results}
+\input{sections/conclusion}
+
+\bibliographystyle{ACM-Reference-Format}
+\bibliography{refs}
+
+\appendix
+\input{sections/appendix}
+\end{document}

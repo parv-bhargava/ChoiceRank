@@ -1,0 +1,9 @@
+Typed decision models return probabilities over caller-defined options without generating free text.
+We evaluate four model families as pointwise passage rerankers on the BM25 top-100 candidates of TREC DL 2019--2023 and eight BEIR collections, examining ranking effectiveness, relevance calibration, and retrieval-augmented generation (RAG) context selection.
+Jev's best format averages 56.1 nDCG@10, close to Qwen3-Reranker-8B at 56.0 and above bge-reranker-v2-m3 at 53.7, with substantial variation across collections; formal pooled equivalence depends on the inference method.
+Same-base comparisons show that Clef's base model is already competitive on three tested collections, while Jeff outperforms its base under the evaluated configurations; different context budgets and prompts limit attribution to decision-model training.
+On judged pairs from nine collections, Jev's raw yes/no probabilities have approximately five points lower mean ECE than bge, without target-label fitting.
+Transfer-calibrated bge achieves similar mean ECE when source collections are grouped by relevance threshold.
+In a RAG study on MuSiQue and NQ with three generators, Jev improves multi-hop answer quality over bge under question-ID splits with substantial MuSiQue component reuse. On 329 questions excluding directly shared components, Jev's advantage persists for top-1 and Adaptive-$k$ selection with every generator (14 of 27 comparisons pass the original Holm correction), while the smaller top-3 gains do not.
+Probability thresholds, including raw thresholds with a calibration-selected readout, do not improve over fixed top-$k$ selection.
+These findings establish typed decision models as competitive reranking configurations while showing that calibration alone does not guarantee better context selection.

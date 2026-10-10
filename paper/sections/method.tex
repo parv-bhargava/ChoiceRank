@@ -1,0 +1,35 @@
+\section{Decision Models as Pointwise Rerankers}
+
+For a query $q$ and candidate passage $d$, we send the state $\{\texttt{query}: q, \texttt{passage}: d\}$ with three typed relevance questions (Table~\ref{tab:questions}).
+All three can be asked in one request (Jeff\kern0pt's server evaluates each question in a separate forward pass; Laya answers all three in one shared pass), so every decision model in our study answers all three formats in a single call per pair; the three answers are therefore not independent samples.
+
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\caption{The three typed relevance questions (instructions and option criteria verbatim from our code) and how each answer is read out for ranking. $p_x$: probability of option $x$; $\mathbb{E}[\ell]$: probability-weighted level.}
+\label{tab:questions}
+\begin{tabular}{p{0.9cm}p{4.7cm}p{2.1cm}}
+\toprule
+Format & Question and options & Primary score \\
+\midrule
+Choice-3 (C3) & \emph{How relevant is the passage to the search query?} relevant: ``The passage directly answers or fully addresses the query.''; partially: ``The passage is on topic and partly addresses the query, but is incomplete or indirect.''; not\_relevant: ``The passage does not address the query.'' & $\tfrac{1}{2}(2p_\text{rel}+p_\text{part})$ \\
+\addlinespace[2pt]
+Noul & \emph{Does the passage answer or address the search query?} true: ``The passage answers or substantively addresses the query.''; false: ``The passage is off topic or does not help answer the query.'' & $P(\text{yes})$ \\
+\addlinespace[2pt]
+Score-4 (S4) & \emph{How relevant is the passage to the search query?} 0: ``Irrelevant: the passage has nothing to do with the query.''; 1: ``Related: on topic but does not answer the query.''; 2: ``Highly relevant: partly answers the query.''; 3: ``Perfectly relevant: dedicated to the query and fully answers it.'' & $\mathbb{E}[\ell]/3$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+For every backend, the Score-4 value returned by the model equals the probability-weighted level $\mathbb{E}[\ell]$ computed from its option probabilities (checked on 20{,}000 answers per model; maximum deviation 0.03, from Jev's two-decimal rounding).
+
+\paragraph{Probability readout.}
+Calibration needs a probability for the \emph{binarized} relevance a collection uses.
+The strict readout is $p_\text{rel}$ (C3), $P(\ell\ge2)$ (S4), or $P(\text{yes})$ (Noul); the lenient readout, for collections whose lowest relevant grade means \emph{partially} relevant, is $p_\text{rel}+p_\text{part}$ (C3) or $P(\ell\ge1)$ (S4).
+We assign the lenient readout to TREC-COVID, DBPedia, and News, whose label definitions describe the lowest relevant grade as partial, and the strict readout elsewhere.
+\emph{Disclosure:} this assignment was introduced after we had observed a Choice-3 ECE of 43.9 on TREC-COVID under the strict readout. It is the most favorable readout policy for Jev's Choice-3 answers (mean ECE 14.8, versus 19.2 strict everywhere and 34.8 lenient everywhere); the Noul readout does not depend on it. We therefore lead with Noul in our calibration claims, report Jev's Choice-3 under both policies in Table~\ref{tab:calibration}, and give both readouts for every collection in Appendix Table~\ref{tab:readouts}. We separately evaluate source-label transfer grouped by numeric binarization threshold (Section~\ref{sec:setup}); this grouping does not imply identical relevance semantics or the same adaptation as the readout policy.
+
+\paragraph{Ties.}
+Some decision models report probabilities rounded to two decimals, producing thousands of exact ties per collection.
+To avoid \texttt{trec\_eval}'s document-ID tie-breaking, exact model-score ties use BM25 rank. Choice-3 first adds $10^{-6}p_{\mathrm{rel}}$ to the listed expected-grade score, so ties in primary expected grade are distinguished by strict relevance probability before BM25. This perturbation is part of the cached scoring configuration; the table lists its primary score.

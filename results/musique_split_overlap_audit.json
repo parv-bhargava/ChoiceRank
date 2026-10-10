@@ -1,0 +1,67 @@
+{
+  "dataset": "MuSiQue-Ans v1.0 dev",
+  "seed": 13,
+  "source_sha256": "15fa63794d18a94ce12411aca6e2327e65b6e83b0b1490efab3f1962e48abf3b",
+  "definition": "Final sub-question reuse compares question_decomposition[-1]['id'] in both questions; counts are affected final questions, not unique components or matching pairs.",
+  "split_sizes": {
+    "calib": 200,
+    "pilot": 300,
+    "final": 1000
+  },
+  "question_ids_disjoint": true,
+  "cached_score_qid_checks": {
+    "runs/rag/musique.calib.jev.parquet": 200,
+    "runs/rag/musique.calib.bge-m3.parquet": 200,
+    "runs/rag/musique.pilot.jev.parquet": 300,
+    "runs/rag/musique.pilot.bge-m3.parquet": 300,
+    "runs/rag/musique.final.jev.parquet": 1000,
+    "runs/rag/musique.final.bge-m3.parquet": 1000
+  },
+  "comparisons": {
+    "terminal_subquestion_id": {
+      "pilot": 494,
+      "calib": 349,
+      "both": 265,
+      "either": 578,
+      "neither": 422
+    },
+    "terminal_subquestion_text": {
+      "pilot": 587,
+      "calib": 420,
+      "both": 334,
+      "either": 673,
+      "neither": 327
+    },
+    "terminal_support_title_text": {
+      "pilot": 499,
+      "calib": 358,
+      "both": 275,
+      "either": 582,
+      "neither": 418
+    },
+    "normalized_whole_question": {
+      "pilot": 1,
+      "calib": 0,
+      "both": 0,
+      "either": 1,
+      "neither": 999
+    },
+    "any_subquestion_id": {
+      "pilot": 593,
+      "calib": 430,
+      "both": 352,
+      "either": 671,
+      "neither": 329
+    }
+  },
+  "distinct_terminal_ids": {
+    "calib": 157,
+    "pilot": 223,
+    "final": 495
+  },
+  "terminal_family_conflicts": {
+    "terminal_answer": [],
+    "terminal_support": []
+  },
+  "interpretation": "Question IDs are disjoint, but component families and terminal supports recur across splits. This audit does not quantify resulting performance inflation or establish family-disjoint generalization."
+}

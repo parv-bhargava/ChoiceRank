@@ -1,0 +1,31 @@
+{
+  "design": "Retrospective sensitivity analysis; no model inference or policy refitting",
+  "subset_definition": "No decomposition sub-question ID occurs in calibration or pilot",
+  "n_final": 1000,
+  "n_clean": 329,
+  "n_distinct_terminal_ids": 241,
+  "n_source_families": 212,
+  "largest_clean_family": 11,
+  "n_source_graph_families": 544,
+  "largest_source_family": 58,
+  "n_clean_questions_indirectly_connected_to_design": 23,
+  "n_clean_families_indirectly_connected_to_design": 18,
+  "family_definition": "Connected components over all 2,417 source questions linked by any shared sub-question ID",
+  "bootstrap": {
+    "seed": 13,
+    "replicates": 20000,
+    "method": "Paired family percentile bootstrap; sample G families with replacement; sum differences / sum questions; unadjusted 95% intervals"
+  },
+  "question_tests": "Paired t-tests with Holm over 9 ranker-effect or 4 threshold-rule tests separately per generator; question independence is not assumed by family CIs, but remains assumed by these legacy tests",
+  "unchanged": "Calibration fits, probability readout, policy thresholds, and generated answers",
+  "limitations": "Changed case mix; not a new confirmatory test or contamination audit. Direct component exclusion does not guarantee transitive family isolation from design splits.",
+  "input_sha256": {
+    "data/rag/musique_ans_v1.0_dev.jsonl": "15fa63794d18a94ce12411aca6e2327e65b6e83b0b1490efab3f1962e48abf3b",
+    "runs/rag/musique.final.gen.qwen_qwen-2.5-7b-instruct.parquet": "f1179b077f8338d436a9aca98114cc0899450380ad4100845314f64040ce546d",
+    "runs/rag/musique.final.per_q.qwen_qwen-2.5-7b-instruct.parquet": "b4467cb83ac24220228977f91f2c5f8679e2042f8b1b9323390dbafe7102b294",
+    "runs/rag/musique.final.gen.meta-llama_llama-3.1-8b-instruct.parquet": "c12ef676dba325a5e1cb1e15f9f72353d88c89809845e734a26c3809d7cd1448",
+    "runs/rag/musique.final.per_q.meta-llama_llama-3.1-8b-instruct.parquet": "8137da4bb0b32b62a96133548c8808598822a3e3c11eef297c8b2657c635a76e",
+    "runs/rag/musique.final.gen.qwen_qwen3-30b-a3b-instruct-2507.parquet": "a5dd88c4ba32dfc84396541b71a8d74183360773f40b179a9fe176af246668ab",
+    "runs/rag/musique.final.per_q.qwen_qwen3-30b-a3b-instruct-2507.parquet": "4905505fc6a63bb934a4f768c48753b62021ebe6a000a4596da4560f34ecd382"
+  }
+}

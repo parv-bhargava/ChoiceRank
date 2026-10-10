@@ -1,0 +1,21 @@
+\section{Introduction}
+
+Retrieval-augmented generation (RAG) pipelines typically retrieve candidates with a cheap first stage, rerank them with a cross-encoder~\cite{nogueira2019monobert} or an LLM~\cite{sun2023rankgpt}, and pass a fixed top-$k$ to the generator.
+Two weaknesses of this recipe are well known: cross-encoders trained on MS~MARCO transfer imperfectly to new domains~\cite{thakur2021beir}, and their scores are not probabilities~\cite{penha2021calibration}, so the cut-off $k$ is chosen by habit rather than by evidence.
+
+A recently released class of models targets both: \emph{typed decision models} such as Jev~\cite{jev}, Cloudflare Clef~\cite{clef}, Jeff~\cite{jeff}, and Laya~\cite{laya}.
+Instead of generating text, they answer a typed question about a state---a choice among named options, a yes/no (Noul) question, or an ordered scale---and return per-option probabilities. Execution differs by backend: Jeff evaluates questions in separate forward passes. Relevance judging is a natural typed task, but an explicit probability interface does not by itself establish calibration or a useful context-selection threshold.
+A relevance judgment is a natural typed question (\emph{Is this passage relevant to the query?}), and a per-option probability is what a context-selection rule such as ``keep passages with $P(\text{relevant})>t$'' needs.
+
+Evidence so far is thin: decision models have been evaluated for recommendation reranking~\cite{lyu2026jevrec} and agent-memory selection~\cite{sharma2026selection}, practitioners report Jev results on two BEIR datasets~\cite{denser2026jevqwen}, and an early audit finds that typed readouts have not yet shown an accuracy advantage over comparable label-probability readouts~\cite{tang2026tdmaudit}.
+No systematic study has evaluated decision models as passage rerankers on standard IR benchmarks against cross-encoders and label-probability LLM rerankers, or measured whether their relevance probabilities are calibrated.
+
+We provide that study, organized around three research questions.
+\textbf{RQ1:} Can typed decision models, used without task-specific tuning as pointwise rerankers, match cross-encoders and label-probability LLM rerankers? 
+\textbf{RQ2:} Are their relevance probabilities calibrated, with and without labels from the target collection?
+\textbf{RQ3:} Do these probabilities help decide which passages a retrieval-augmented generator should see?
+Our contributions are:
+(1)~an evaluation of four decision-model families and three question formats, without task-specific tuning on our side, on 13 collections against cross-encoders and label-probability LLM rerankers, including same-base configuration comparisons for Clef and Jeff, paired tests, sensitivity to incomplete pools and pooled inference, and equal-context Jev--bge ablations;
+(2)~a calibration analysis on nine collections with judged negatives, comparing raw readouts with source-label transfer and explicitly distinguishing numeric-threshold grouping from identical relevance semantics;
+(3)~a question-ID-split RAG evaluation on MuSiQue and NQ with three generators, comparing fixed top-$k$, gap-based, and threshold-based context selection, with an analysis of \emph{which} passages each ranker selects and retrospective sensitivity to MuSiQue component reuse;
+and (4)~code for reproducing and extending the evaluation, with input hashes, split IDs, complete-grid checks, and statistical sensitivity outputs.
