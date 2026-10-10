@@ -48,9 +48,19 @@ def main():
         except importlib.metadata.PackageNotFoundError:
             packages[name] = None
     provenance = RUNS_DIR / "manifest.jsonl"
+    component_audit_path = RESULTS_DIR / "musique_split_overlap_audit.json"
+    component_audit = None
+    if component_audit_path.exists():
+        audit = json.loads(component_audit_path.read_text(encoding="utf-8"))
+        if audit["source_sha256"] != digest(DATA_DIR / "rag/musique_ans_v1.0_dev.jsonl"):
+            raise ValueError("MuSiQue component audit is stale for the current source")
+        component_audit = dict(path=component_audit_path.relative_to(ROOT).as_posix(),
+                               sha256=digest(component_audit_path), comparisons=audit["comparisons"])
     out = dict(created_utc=datetime.now(timezone.utc).isoformat(), python=platform.python_version(),
                packages=packages, split_seed=SEED, split_ids=splits,
-               normalized_question_overlap=shared_questions, input_files=sources,
+               normalized_question_overlap=shared_questions,
+               normalized_question_overlap_scope="Whole normalized wording only; this does not measure decomposition-family reuse",
+               musique_component_overlap_audit=component_audit, input_files=sources,
                analysis_source_sha256={p.relative_to(ROOT).as_posix(): digest(p)
                                        for folder in (ROOT / "scripts", ROOT / "choicerank")
                                        for p in sorted(folder.rglob("*.py"))},

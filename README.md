@@ -137,6 +137,8 @@ python scripts/review3_analyses.py transfer robust meta equiv sensitivity eqctx 
 python scripts/depth_analysis.py    # reranking-depth simulation
 python scripts/rag_summary.py       # RQ3 tests -> paper/tables/rag.tex
 python scripts/make_tables.py && python scripts/make_appendix.py && python scripts/make_figures.py   # -> paper/tables, paper/figures
+python scripts/audit_musique_split_overlap.py  # direct component reuse across existing MuSiQue splits
+python scripts/musique_clean_subset.py  # cached 329-question sensitivity, family intervals, table
 python scripts/reproduction_manifest.py  # full input hashes, split IDs, package and analysis provenance
 python -m unittest discover -s tests -v
 ```
@@ -153,7 +155,7 @@ These are disclosed in the paper:
 - **RQ3 comparisons:** top-3 and Adaptive-k were the locked threshold-rule comparators. Top-2/top-5 comparisons were added later and are exploratory; equivalence margins and raw-threshold additions are post-hoc.
 - **Label use:** raw RAG thresholds still use a readout selected on labelled calibration questions. They are not label-free. RQ2 raw Noul evaluation requires no target-label fitting.
 - **Transfer calibration:** Group means within-DL/within-dense-BEIR transfer, grouped by numeric relevance threshold and weighted equally per source collection; it does not guarantee matching relevance semantics.
-- **Splits:** IDs are disjoint, but one related MuSiQue question with a different ID occurs in pilot and final; the manifest records normalized overlaps.
+- **Splits:** Question IDs are disjoint, but 494/349 of 1,000 final MuSiQue questions reuse the terminal sub-question ID from pilot/calibration (578 either); 671 share any component with either. The component audit records this separately from the one normalized whole-question duplicate. A retrospective 329-question analysis excludes directly shared components; it does not ensure transitive family isolation.
 
 ## Licensing
 

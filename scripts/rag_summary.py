@@ -134,9 +134,9 @@ def write_latex(S, T):
     cols = [(d, g) for d in DS for g in GENS.values() if ((S.dataset == d) & (S.gen == g)).any()]
     sig = T[T.comparison.str.startswith("a")].set_index(["dataset", "gen", "A"])
     out = [r"\begin{table*}[t]", r"\centering", r"\footnotesize", r"\setlength{\tabcolsep}{4pt}",
-           r"\caption{RQ3: answer F1 on 1{,}000 held-out questions per dataset, by context-selection policy and generator. "
+           r"\caption{RQ3: answer F1 on the original 1{,}000 ID-disjoint final questions per dataset; MuSiQue component families overlap design splits. "
            r"Avg.\ $n$: mean number of selected passages (independent of generator). $^\dagger$: Jev significantly better than "
-           r"bge-reranker-v2-m3 under the same policy (paired $t$-test, Holm-corrected, $p<0.05$). "
+           r"bge-reranker-v2-m3 under the same policy in the original question-level paired $t$-test (Holm-corrected, $p<0.05$); these tests do not account for family dependence. "
            r"Displayed policies and ranker-effect comparisons were fixed after separate pilot questions. "
            r"Thresholds use a readout selected with labelled calibration questions; the $P>0.3$ rows are Platt-scaled.}",
            r"\label{tab:rag}",
