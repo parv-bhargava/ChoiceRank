@@ -4,9 +4,8 @@
 # downloaded inputs (re-fetched automatically from public sources)
 data/
 
-# experiment outputs are not published in this repository
+# raw experiment outputs are not published (aggregates live in results/)
 runs/
-# results/
 *.part
 
 # private working notes
@@ -20,9 +19,12 @@ __pycache__/
 .ipynb_checkpoints/
 .venv/
 
-# paper sources are kept private until submission (scripts write tables/figures into paper/)
-# paper/
+# paper build artifacts, local drafts and internal review notes
 tectonic.log
+paper/*.blg
+paper/main_v*.pdf
+paper/feedback-*.md
+paper/revision-notes-*.md
 
 # Colab notebook kept local
 notebooks/colab_jeff_latency.ipynb

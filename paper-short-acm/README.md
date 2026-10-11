@@ -1,6 +1,6 @@
 # Four-page ACM submission draft
 
-This directory is independent of the longer `paper/` manuscript. The compiled draft has four pages including references, using the same ACM `sigconf,nonacm` class, with standard body fonts and margins. The original was preserved when the short draft was created. On 2026-10-10, the user requested the MuSiQue overlap correction and clean-subset result; that correction was applied to both versions. Copies from immediately before this correction are retained in `C:\Users\parvb\AppData\Local\Temp\choicerank-before-overlap-correction-20261010`.
+This directory is independent of the longer `paper/` manuscript. The compiled draft has four pages including references, using the same ACM `sigconf,nonacm` class, with standard body fonts and margins. The original was preserved when the short draft was created. On 2026-10-10, the MuSiQue overlap correction and clean-subset result were applied to both versions.
 
 Files:
 
@@ -13,11 +13,7 @@ Files:
 - `figures/chart-data.json`: plotted values, confidence intervals, and source-file hashes.
 - `validation.json`: current page count, source hashes, and correction provenance; the initial preservation record remains separate.
 
-Build from this directory with `tectonic main.tex`. On this machine:
-
-```powershell
-& 'C:\Users\parvb\tools\tectonic\tectonic.exe' main.tex
-```
+Build from this directory with `tectonic main.tex`.
 
 The figure PDFs are bundled, so LaTeX compilation needs no access to the original paper or cached results. To regenerate the charts with the project Python environment, run `python make_charts.py` while the existing `../results/` CSVs are available, then rebuild LaTeX. The panels show equal-weight ranking means, raw versus numeric-group transfer ECE, and top-3 paired Jev--bge RAG differences on the original 1,000-question splits with ordinary 95% confidence intervals. The caption states that the original question-level tests ignore MuSiQue family dependence. The table separately adds the 329-question subset; its intervals are reported in the text.
 
