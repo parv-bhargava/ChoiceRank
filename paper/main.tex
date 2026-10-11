@@ -1,8 +1,11 @@
-% ACM sigconf short paper (arXiv preprint first; SIGIR/ECIR short or IR workshop later).
-% Build: C:\Users\parvb\tools\tectonic\tectonic.exe main.tex   (or upload paper/ to Overleaf)
+% Full manuscript (ACM sigconf layout for now; switch to the target journal's template before submission).
+% Build: tectonic main.tex   or   latexmk -pdf main.tex   (or upload paper/ to Overleaf)
 % Numbers in tables/ and figures/ are generated: scripts/eval_all.py -> significance.py -> make_tables.py / make_figures.py
 \documentclass[sigconf,nonacm]{acmart}
 \usepackage{booktabs}
+\usepackage{xcolor}
+% Visible placeholder for items the authors must fill in before submission.
+\newcommand{\authorTODO}[1]{\textcolor{red}{[TODO: #1]}}
 \emergencystretch=1.5em
 \settopmatter{printacmref=false}
 \setcopyright{none}
@@ -31,6 +34,7 @@
 \input{sections/experiments}
 \input{sections/results}
 \input{sections/conclusion}
+\input{sections/declarations}
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{refs}
