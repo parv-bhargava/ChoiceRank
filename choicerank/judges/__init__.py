@@ -27,6 +27,10 @@ def make_judge(model: str, qtype: str = "choice3") -> Judge:
         from .llm_yesno import LLMYesNoJudge
 
         return LLMYesNoJudge(model)
+    if model.startswith("qwen3-reranker-") and "-instr" in model:  # e.g. qwen3-reranker-0.6B-instr1 (issue #12)
+        from .crossencoder import Qwen3RerankerJudge
+
+        return Qwen3RerankerJudge(model.split("-")[2], instruction=model.split("-")[3])
     if model.startswith("qwen3-reranker-"):  # e.g. qwen3-reranker-0.6B: label-probability (P(yes)) LLM reranker
         from .crossencoder import Qwen3RerankerJudge
 

@@ -25,7 +25,8 @@ from tqdm import tqdm
 from choicerank import ROOT, RUNS_DIR
 from choicerank.data import DATASETS, GROUPS, load_queries, truncate_passages
 
-PAID = {"jev", "clef", "clef-flash", "qwen235-yesno", "qwen27base-yesno", "qwen235-graded"}
+PAID = {"jev", "clef", "clef-flash", "qwen235-yesno", "qwen27base-yesno", "qwen235-graded",
+        "qwen235-v1-yesno", "qwen235-v2-yesno", "qwen235-v3-yesno"}
 
 
 def run_name(model, qtype, ds, topk):
@@ -52,7 +53,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
     ap.add_argument("--dataset", nargs="+", required=True, help=f"names or groups: {sorted(GROUPS)}")
-    ap.add_argument("--qtype", default="choice3", choices=["choice3", "noul", "score4", "all"])
+    ap.add_argument("--qtype", default="choice3",
+                    choices=["choice3", "noul", "score4", "all", "noul_p1", "noul_p2", "noul_p3"])
     ap.add_argument("--topk", type=int, default=100)
     ap.add_argument("--limit-queries", type=int, default=None, help="0 = all; default = dataset default")
     ap.add_argument("--dry-run", action="store_true")

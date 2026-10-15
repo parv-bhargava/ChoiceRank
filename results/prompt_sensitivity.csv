@@ -1,0 +1,21 @@
+family,dataset,system,variant,ndcg10,ECE
+Jev Noul,dl19,jev-noul,original,71.34700723636975,12.360655737704917
+Jev Noul,dl20,jev-noul,original,70.04579442084945,20.703742567331236
+Jev Noul,scifact,jev-noul,original,79.76795286248597,3.0899686311152643
+Qwen3-Reranker-0.6B,dl19,qwen3-reranker-0.6B,original,69.39830839361127,38.99631055390573
+Qwen3-Reranker-0.6B,dl19,qwen3-reranker-0.6B-instr1,paraphrase1,71.2282719403826,23.54259558108452
+Qwen3-Reranker-0.6B,dl19,qwen3-reranker-0.6B-instr2,paraphrase2,71.24630444924743,26.016087107417498
+Qwen3-Reranker-0.6B,dl19,qwen3-reranker-0.6B-instr3,paraphrase3,71.40118501878689,25.599945572285097
+Qwen3-Reranker-0.6B,dl20,qwen3-reranker-0.6B,original,64.03323034252098,46.242377244325475
+Qwen3-Reranker-0.6B,dl20,qwen3-reranker-0.6B-instr1,paraphrase1,64.52067064663112,28.75655233206119
+Qwen3-Reranker-0.6B,dl20,qwen3-reranker-0.6B-instr2,paraphrase2,65.01302635055221,32.52469284852791
+Qwen3-Reranker-0.6B,dl20,qwen3-reranker-0.6B-instr3,paraphrase3,64.5305129421292,31.37889343452661
+Qwen3-Reranker-0.6B,scifact,qwen3-reranker-0.6B,original,76.78309706954032,4.4039798925459
+Qwen3-Reranker-0.6B,scifact,qwen3-reranker-0.6B-instr1,paraphrase1,77.0257565422882,3.6362821609068487
+Qwen3-Reranker-0.6B,scifact,qwen3-reranker-0.6B-instr2,paraphrase2,76.4171682143488,3.7593542012331866
+Qwen3-Reranker-0.6B,scifact,qwen3-reranker-0.6B-instr3,paraphrase3,76.80525952441464,2.9864361084619926
+Qwen3-Reranker-8B,dl19,qwen3-reranker-8B,original,73.60871160071302,14.219191211629708
+Qwen3-Reranker-8B,dl20,qwen3-reranker-8B,original,66.47031412854098,20.488523859076697
+Qwen3-Reranker-8B,scifact,qwen3-reranker-8B,original,79.19967522097448,4.1015076452051495
+Qwen3-235B P(yes),dl19,qwen235-yesno,original,68.60471441780356,18.58268260569775
+Qwen3-235B P(yes),dl20,qwen235-yesno,original,66.5079286095721,22.029680764863425

@@ -21,6 +21,9 @@ Jev's probability readout was chosen by Brier score on the calibration split (Mu
 \paragraph{Pooled-inference sensitivity.}
 Table~\ref{tab:meta-sensitivity} contrasts normal and modified Knapp--Hartung intervals using the same DL heterogeneity estimates. The CSV additionally covers the DL and Clef--Jev format comparisons. Jev S4 versus bge on DL has mKH 90\% CI $[-1.81,3.16]$: non-inferiority at $-2$ survives, while equivalence does not. Clef--Jev equivalence survives for all three formats. Jev S4 versus Qwen8B and Clef S4 versus its base do not establish $\pm2$ equivalence under mKH. These analyses and margins are exploratory.
 
+\paragraph{Prompt sensitivity.}\label{app:prompts}
+We fixed three paraphrases each of the Noul question, the Qwen3-235B yes/no prompt, and the Qwen3-Reranker instruction before running any of them (code: \texttt{PARAPHRASES}, \texttt{USER\_PARAPHRASES}, \texttt{INSTRUCTIONS}). For Qwen3-Reranker-0.6B on DL19, DL20, and SciFact, the paraphrases change nDCG@10 by at most 2.0 points (DL19 69.4 with the default instruction versus 71.2--71.4), but they lower raw ECE on DL from 39.0 and 46.2 to 23.5--26.0 and 28.8--32.5; on SciFact ECE stays within 3.0--4.4. The default instruction is therefore the least calibrated of the four wordings, so raw-ECE comparisons with the Qwen rerankers depend on the prompt. The Jev Noul and Qwen3-235B paraphrases have not yet been run.
+
 \input{tables/app_meta_sensitivity}
 \input{tables/app_ranking_full}
 
