@@ -322,10 +322,15 @@ def sensitivity():
     """Post-hoc normal versus mKH sensitivity from cached query-level runs; no model calls."""
     from choicerank.data import DL
 
+    clef7 = DL + ["trec-covid", "robust04"]
+    # issue #11: the Clef same-base control widens to all seven Clef collections once the base runs exist
+    base_all = all((RUNS_DIR / f"{d}.top100.qwen27base-yesno.trec").exists() for d in clef7)
+    clef_base = (("clef-score4", "qwen27base-yesno", "Clef-7", clef7) if base_all
+                 else ("clef-score4", "qwen27base-yesno", "DL19/20+COVID", ["dl19", "dl20", "trec-covid"]))
     claims = [("jev-score4", "bge-m3", "All-13", ALL),
               ("jev-score4", "bge-m3", "Without Robust04", [d for d in ALL if d != "robust04"]),
               ("jev-score4", "qwen3-reranker-8B", "All-13", ALL),
-              ("clef-score4", "qwen27base-yesno", "DL19/20+COVID", ["dl19", "dl20", "trec-covid"])]
+              clef_base]
     claims += [(f"jev-{fmt}", base, "DL19-23", DL)
                for fmt in ("score4", "noul", "choice3") for base in ("bge-m3", "minilm")]
     claims += [(f"jev-{fmt}", f"clef-{fmt}", "Clef-7", DL + ["trec-covid", "robust04"])
@@ -349,7 +354,8 @@ def sensitivity():
              r"\label{tab:meta-sensitivity}", r"\begin{tabular}{lrrrr}", r"\toprule",
              r"Comparison & $k$ & Pooled difference & Normal CI & mKH CI \\", r"\midrule"]
     labels = [r"Jev S4 -- bge, all (95\%)", r"Jev S4 -- bge, no Robust04 (95\%)",
-              r"Jev S4 -- Qwen8B, all (90\%)", r"Clef S4 -- base, three collections (90\%)"]
+              r"Jev S4 -- Qwen8B, all (90\%)",
+              r"Clef S4 -- base, seven collections (90\%)" if base_all else r"Clef S4 -- base, three collections (90\%)"]
     for (a, b, label, _), display, level in zip(claims[:4], labels, (95, 95, 90, 90)):
         pair = out[(out.A == a) & (out.B == b) & (out.collections == label)].set_index("method")
         normal, robust = pair.loc["normal"], pair.loc["mKH"]
