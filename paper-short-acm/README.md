@@ -12,6 +12,7 @@ Files:
 - `figures/results-overview.pdf` and `.png`: vector publication figure and preview.
 - `figures/chart-data.json`: plotted values, confidence intervals, and source-file hashes.
 - `validation.json`: current page count, source hashes, and correction provenance; the initial preservation record remains separate.
+- `update_validation.py`: refreshes the page counts and hashes in `validation.json` after both PDFs are rebuilt (`python paper-short-acm/update_validation.py` from the repository root).
 
 Build from this directory with `tectonic main.tex`.
 
