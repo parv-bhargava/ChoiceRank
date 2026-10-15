@@ -55,24 +55,55 @@ def paired(x, y, meta):
             "p": stats.ttest_rel(x, y).pvalue, "p_tost": max(p_lo, p_hi)}
 
 
-def per_question(ds, gen):
-    """Validate source completeness and rebuild stale or unverified per-question scores."""
+def per_question(ds, gen, rankers=None):
+    """Validate source completeness and rebuild stale or unverified per-question scores.
+    rankers: None for the original jev/bge grid, or e.g. ['qwen3-reranker-8B'] for an additional ranker (issue #4)."""
     from scripts.rag_eval import file_hash, validate_grid
-    from scripts.rag_generate import FINAL_POLICIES
+    from scripts.rag_generate import RANKERS, final_policies, gen_path
     from choicerank.rag import load_split
 
-    slug = gen.replace("/", "_")
-    p = RUNS_DIR / "rag" / f"{ds}.final.per_q.{slug}.parquet"
-    source = RUNS_DIR / "rag" / f"{ds}.final.gen.{slug}.parquet"
-    validate_grid(pd.read_parquet(source), [it.qid for it in load_split(ds, "final")], FINAL_POLICIES)
+    rankers = rankers or RANKERS
+    p = gen_path(ds, "final", gen, rankers, kind="per_q")
+    source = gen_path(ds, "final", gen, rankers)
+    validate_grid(pd.read_parquet(source), [it.qid for it in load_split(ds, "final")], final_policies(rankers))
     metadata = p.with_suffix(".metadata.json")
     provenance = json.loads(metadata.read_text(encoding="utf-8")) if metadata.exists() else {}
     if not p.exists() or not provenance.get("complete_grid") or provenance.get("generation_sha256") != file_hash(source):
         import subprocess
 
-        subprocess.run([sys.executable, "scripts/rag_eval.py", "--dataset", ds, "--split", "final", "--gen", gen],
+        extra = [] if rankers == RANKERS else ["--rankers", *rankers]
+        subprocess.run([sys.executable, "scripts/rag_eval.py", "--dataset", ds, "--split", "final", "--gen", gen, *extra],
                        cwd=ROOT, check=True, capture_output=True)
     return pd.read_parquet(p)
+
+
+EXTRA_RANKERS = ["qwen3-reranker-8B", "qwen3-reranker-0.6B"]  # issue #4: downstream comparison with Qwen rerankers
+
+
+def extra_ranker_tests(ds, gen, wide_jev):
+    """Summary rows and family (c) tests, Jev vs each additional ranker under the nine locked policies (Holm per
+    dataset x generator x ranker), for the rankers whose final generations exist."""
+    from scripts.rag_generate import gen_path
+
+    summary, tests = [], []
+    for rk in EXTRA_RANKERS:
+        if not gen_path(ds, "final", gen, [rk]).exists():
+            continue
+        per = per_question(ds, gen, [rk])
+        agg = per.groupby("policy").agg(F1=("F1", "mean"), EM=("EM", "mean"), n=("n", "mean"),
+                                        tokens=("tokens", "mean"), empty=("empty", "mean"))
+        for pol, r in agg.iterrows():
+            summary.append(dict(dataset=ds, gen=GENS[gen], policy=pol, F1=100 * r["F1"], EM=100 * r["EM"],
+                                n=r["n"], tokens=r["tokens"], empty=100 * r["empty"]))
+        wide = per.pivot(index="qid", columns="policy", values="F1")
+        rows = [paired(wide_jev[f"jev:{p}"], wide[f"{rk}:{p}"],
+                       dict(dataset=ds, gen=GENS[gen], comparison=f"c: jev vs {rk}", A=f"jev:{p}", B=f"{rk}:{p}",
+                            design="added_after_final_results", equivalence_design="posthoc_margin_uncorrected"))
+                for p in SHARED]
+        for r, ph in zip(rows, holm([r["p"] for r in rows])):
+            r["p_holm"] = ph
+        tests += rows
+    return summary, tests
 
 
 def main():
@@ -101,6 +132,9 @@ def main():
                 for r, ph in zip(rows, holm([r["p"] for r in rows])):
                     r["p_holm"] = ph
                 tests += rows
+            s_x, t_x = extra_ranker_tests(ds, gen, wide)
+            summary += s_x
+            tests += t_x
     # (b) pooled over generators: per-question mean F1 across the 3 generators
     for ds in DS:
         ws = [w for (d, g), w in wide_by.items() if d == ds]
@@ -131,6 +165,10 @@ def write_latex(S, T):
             ("jev:floor2+thr0.3", r"\quad top-2 $+$ $P>0.3$"),
             (None, "bge-reranker-v2-m3"), ("bge-m3:top1", r"\quad top-1"), ("bge-m3:top3", r"\quad top-3"),
             ("bge-m3:adaptive", r"\quad adaptive-$k$"), ("bge-m3:floor2+thr0.3", r"\quad top-2 $+$ $P>0.3$")]
+    for rk, name in [("qwen3-reranker-8B", "Qwen3-Reranker-8B (4-bit)"), ("qwen3-reranker-0.6B", "Qwen3-Reranker-0.6B")]:
+        if (S.policy == f"{rk}:top1").any():  # issue #4: shown once its final generations exist
+            rows += [(None, name), (f"{rk}:top1", r"\quad top-1"), (f"{rk}:top3", r"\quad top-3"),
+                     (f"{rk}:adaptive", r"\quad adaptive-$k$"), (f"{rk}:floor2+thr0.3", r"\quad top-2 $+$ $P>0.3$")]
     cols = [(d, g) for d in DS for g in GENS.values() if ((S.dataset == d) & (S.gen == g)).any()]
     sig = T[T.comparison.str.startswith("a")].set_index(["dataset", "gen", "A"])
     out = [r"\begin{table*}[t]", r"\centering", r"\footnotesize", r"\setlength{\tabcolsep}{4pt}",

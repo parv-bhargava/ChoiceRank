@@ -163,13 +163,20 @@ def judged():
     pd.DataFrame(out).to_csv(RESULTS_DIR / "judged.csv", index=False)
 
 
+def _rag_rankers(ds):
+    """(ranker, ranking column) for the RQ3 diagnostics; Qwen rerankers join once their final scores exist (issue #4)."""
+    extra = [(r, "score") for r in ("qwen3-reranker-8B", "qwen3-reranker-0.6B")
+             if (RUNS_DIR / "rag" / f"{ds}.final.{r}.parquet").exists()]
+    return [("jev", "score_score4"), ("bge-m3", "score")] + extra
+
+
 def rag_selection():
     from choicerank.rag import load_split
 
     out = []
     for ds in ("musique", "nq"):
         items = {it.qid: it for it in load_split(ds, "final")}
-        for r, scol in (("jev", "score_score4"), ("bge-m3", "score")):
+        for r, scol in _rag_rankers(ds):
             t = pd.read_parquet(RUNS_DIR / "rag" / f"{ds}.final.{r}.parquet")
             for k in (1, 2, 3, 5):
                 rec, allg = [], []
@@ -195,7 +202,7 @@ def rag_hops():
         r = json.loads(line)
         dec["musique:" + r["id"]] = [str(h["paragraph_support_idx"]) for h in r["question_decomposition"]]
     out = []
-    for rk, scol in (("jev", "score_score4"), ("bge-m3", "score")):
+    for rk, scol in _rag_rankers("musique"):
         t = pd.read_parquet(RUNS_DIR / "rag" / f"musique.final.{rk}.parquet")
         last, first, ans = [], [], []
         for q, g in t.groupby("qid"):

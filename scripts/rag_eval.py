@@ -53,15 +53,18 @@ def main():
     ap.add_argument("--split", required=True, choices=["pilot", "main", "final"])
     ap.add_argument("--gen", required=True)
     ap.add_argument("--allow-partial", action="store_true", help="explicit exploratory evaluation of a partial run")
+    ap.add_argument("--rankers", nargs="+", default=None, help="as passed to rag_generate.py (default jev bge-m3)")
     args = ap.parse_args()
+    from scripts.rag_generate import RANKERS, final_policies, gen_path
+
+    rankers = args.rankers or RANKERS
     slug = args.gen.replace("/", "_")
-    source = RUNS_DIR / "rag" / f"{args.dataset}.{args.split}.gen.{slug}.parquet"
+    source = gen_path(args.dataset, args.split, args.gen, rankers)
+    extra = "" if rankers == RANKERS else "_" + "+".join(rankers)
     df = pd.read_parquet(source)
     items = {it.qid: it for it in load_split(args.dataset, args.split)}
     if not args.allow_partial:
-        from scripts.rag_generate import FINAL_POLICIES
-
-        validate_grid(df, items, FINAL_POLICIES if args.split == "final" else None)
+        validate_grid(df, items, final_policies(rankers) if args.split == "final" else None)
     recs = []
     for r in df.itertuples():
         it = items[r.qid]
@@ -83,9 +86,9 @@ def main():
         sub = per[~per.has_gold].groupby("policy")
         agg["EM_nogold"], agg["empty_nogold"] = 100 * sub.EM.mean(), 100 * sub.empty.mean()
     RESULTS_DIR.mkdir(exist_ok=True)
-    out = RESULTS_DIR / f"rag_{args.dataset}_{args.split}_{slug}.csv"
+    out = RESULTS_DIR / f"rag_{args.dataset}_{args.split}_{slug}{extra}.csv"
     agg.sort_values("F1", ascending=False).to_csv(out)
-    per_path = RUNS_DIR / "rag" / f"{args.dataset}.{args.split}.per_q.{slug}.parquet"
+    per_path = gen_path(args.dataset, args.split, args.gen, rankers, kind="per_q")
     per.to_parquet(per_path, index=False)
     per_path.with_suffix(".metadata.json").write_text(json.dumps(
         {"generation_sha256": file_hash(source), "complete_grid": not args.allow_partial,
