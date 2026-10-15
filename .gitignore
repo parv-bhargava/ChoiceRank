@@ -28,3 +28,6 @@ paper/revision-notes-*.md
 
 # Colab notebook kept local
 notebooks/colab_jeff_latency.ipynb
+
+# local session handoff (advisor review)
+HANDOFF.md
