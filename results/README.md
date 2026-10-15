@@ -77,6 +77,7 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 | `rag_{dataset}_{split}_{generator}.csv` | Per selection policy: EM, F1, accuracy, mean passages `n`, generator input `tokens`, share of empty selections, selection precision/recall, all-gold rate. `pilot` files are the design runs; `final` files are the 1,000 held-out questions. NQ files add EM/empty on questions without a gold passage. |
 | `rag_final_summary.csv` | All final runs in one table (dataset × generator × policy). |
 | `rag_final_tests.csv` | Paired tests: (a) Jev vs. bge under each policy (Holm per dataset × generator), (b) threshold rule vs. fixed *k*, with 95% CIs, TOST (±2 F1, post-hoc) and a test pooled over generators. |
+| `rag_final_tests_em.csv` | Test (a), Jev vs. bge under each policy, repeated on Exact Match (`delta_EM`, Holm per dataset × generator). EM is a secondary metric. |
 | `rag_thrraw.csv` | Post-hoc raw-probability thresholds vs. Platt threshold, top-3 and Adaptive-*k*. The raw readout was chosen on labelled calibration questions, so these are not label-free. |
 
 **Generator-free diagnostics:**
@@ -119,7 +120,7 @@ python scripts/review3_analyses.py       # all r3_*.csv, rag_thrraw.csv
 python scripts/depth_analysis.py         # depth.csv
 python scripts/truncation_stats.py       # truncation.csv
 python scripts/rag_eval.py --dataset musique --split final --gen <generator>   # rag_{dataset}_{split}_{generator}.csv
-python scripts/rag_summary.py            # rag_final_summary.csv, rag_final_tests.csv
+python scripts/rag_summary.py            # rag_final_summary.csv, rag_final_tests.csv, rag_final_tests_em.csv
 python scripts/audit_musique_split_overlap.py   # musique_split_overlap_audit.*
 python scripts/musique_clean_subset.py          # musique_clean_subset_*
 python scripts/reproduction_manifest.py         # reproduction_manifest.json
