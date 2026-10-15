@@ -199,7 +199,10 @@ def longdoc_table(rank: pd.DataFrame, trunc: pd.DataFrame) -> str:
     lines += [r"\midrule", r"\multicolumn{4}{l}{\textit{nDCG@10}} \\"]
     for s, lab in [("bm25", r"\quad BM25"), ("minilm", r"\quad MiniLM (512)"), ("minilm-p448", r"\quad MiniLM (=448)"),
                    ("bge-m3", r"\quad bge (512)"), ("bge-m3-p448", r"\quad bge (=448)"), ("bge-m3-2048", r"\quad bge (2{,}048)"),
-                   ("jev-score4", r"\quad Jev S4 (4k chars)"), ("jev-p448-score4", r"\quad Jev S4 (=448)")]:
+                   ("jev-score4", r"\quad Jev S4 (4k chars)"), ("jev-p448-score4", r"\quad Jev S4 (=448)"),
+                   ("qwen3-reranker-8B", r"\quad Qwen8B (448)"), ("qwen3-reranker-8B-4k", r"\quad Qwen8B (4k chars)")]:
+        if s.startswith("qwen3-reranker-8B") and all(get(s, d) == "--" for d in LONG):
+            continue  # issue #5: Qwen8B rows appear once its runs exist on these collections
         lines.append(lab + " & " + " & ".join(get(s, d) for d in LONG) + r" \\")
     deltas = []
     for d in LONG:

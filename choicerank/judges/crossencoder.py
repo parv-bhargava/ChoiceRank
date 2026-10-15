@@ -53,6 +53,9 @@ class Qwen3RerankerJudge(Judge):
     logit is log P(yes) - log P(no), so sigmoid(logit) = P(yes). The official chat template is applied;
     the passage is pre-truncated to `passage_tokens` (default 448, the cross-encoders' budget) so that
     truncation never cuts the template suffix.
+
+    passage_chars (equal-context control, issue #5): first cut each passage to the same first N characters that the
+    decision models read (4,000), with a token cap high enough not to cut further; `label` names the configuration.
     """
 
     PREFIX = ('<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the '
@@ -60,13 +63,15 @@ class Qwen3RerankerJudge(Judge):
     SUFFIX = "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
     INSTRUCTION = "Given a web search query, retrieve relevant passages that answer the query"
 
-    def __init__(self, size: str = "0.6B", passage_tokens: int = 448, batch_size: int = 16):
+    def __init__(self, size: str = "0.6B", passage_tokens: int = 448, batch_size: int = 16,
+                 passage_chars: int | None = None, label: str | None = None):
         # Direct transformers path (sentence-transformers >= 6 rejects the 4B/8B checkpoints' chat template for pairs).
         # A query-document pair is tokenized as a text pair, which for this tokenizer is plain concatenation,
         # exactly as sentence-transformers' CrossEncoder did for the 0.6B runs (verified identical).
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
         self.size, self.passage_tokens, self.batch_size = size, passage_tokens, batch_size
+        self.passage_chars, self.label = passage_chars, label
         name = f"tomaarsen/Qwen3-Reranker-{size}-seq-cls"
         self.tok = AutoTokenizer.from_pretrained(name)
         self.tok.padding_side = "left"
@@ -78,7 +83,7 @@ class Qwen3RerankerJudge(Judge):
 
             q = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.float16)
             self.model = AutoModelForSequenceClassification.from_pretrained(name, quantization_config=q, device_map="cuda")
-            self.batch_size = 8
+            self.batch_size = 8 if passage_tokens <= 512 else 2  # long inputs: bound GPU memory
         else:
             dtype = torch.float16 if self.dev == "cuda" else torch.float32
             self.model = AutoModelForSequenceClassification.from_pretrained(name, dtype=dtype).to(self.dev)
@@ -88,10 +93,12 @@ class Qwen3RerankerJudge(Judge):
 
     @property
     def judge_id(self) -> str:
-        return f"ce:qwen3-reranker-{self.size}"
+        return f"ce:{self.label}" if self.label else f"ce:qwen3-reranker-{self.size}"
 
     def _judge(self, query, passages):
         t0 = time.perf_counter()
+        if self.passage_chars:
+            passages = [p[: self.passage_chars] for p in passages]
         ids = self.tok(passages, add_special_tokens=False, truncation=True, max_length=self.passage_tokens)["input_ids"]
         docs = [self.tok.decode(x) for x in ids]
         q = f"{self.PREFIX}<Instruct>: {self.INSTRUCTION}\n<Query>: {query}\n"
