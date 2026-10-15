@@ -16,12 +16,15 @@ The paper asks three questions:
 |---|---|
 | `choicerank/` | Data loading, question formats and readouts, metrics, and one judge class per system (`judges/`). |
 | `scripts/` | Run, evaluation, and table/figure scripts (see below). |
-| `notebooks/` | Colab notebook for Jeff latency on a T4. |
+| `results/` | Aggregate evaluation CSV/JSON files behind every table and figure; see `results/README.md`. |
+| `paper/`, `paper-short-acm/` | Manuscript sources (full and four-page versions). |
+| `tests/` | Unit tests for the review revisions. |
 
-Inputs, run outputs, and results are not version-controlled:
+Inputs and raw run outputs are not version-controlled:
 - `data/`: downloaded automatically from public sources on first use.
 - `runs/`: per-pair scores, TREC runs, API caches, and generator answers. Written by the run scripts.
-- `results/`: evaluation CSVs. Written by the analysis scripts.
+
+The Colab notebook used to time Jeff on a T4 is kept local and is not part of the release.
 
 ## Setup
 
@@ -161,6 +164,17 @@ These are disclosed in the paper:
 
 - **Code:** MIT (`LICENSE`).
 - **Underlying collections:** these keep their own licenses. No passage text is redistributed. Robust04, TREC News (Washington Post) and Signal-1M require their own data agreements.
+
+## Releasing and archiving
+
+To make a citable release:
+
+1. Make the repository public (Settings → General → Danger zone → Change visibility).
+2. Sign in to [Zenodo](https://zenodo.org) with GitHub and switch on this repository under *GitHub*.
+3. Create a GitHub release (for example `v1.0`). Zenodo archives it and mints a DOI, using `.zenodo.json` for the metadata.
+4. Put the repository URL and the DOI in `paper/sections/declarations.tex` and in the citation below.
+
+`CITATION.cff` gives GitHub's "Cite this repository" entry.
 
 ## Citation
 

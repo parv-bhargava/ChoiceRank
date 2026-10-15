@@ -1,0 +1,11 @@
+{
+  "title": "ChoiceRank: code and aggregate results for \"Typed Decision Models as Passage Rerankers: Effectiveness, Calibration, and Context Selection\"",
+  "upload_type": "software",
+  "description": "Code, prompts, split IDs, input hashes, and aggregate result tables for evaluating typed decision models (Jev, Clef, Jeff, Laya) as passage rerankers on TREC DL 2019-2023 and eight BEIR collections, their calibration, and their use for context selection in retrieval-augmented generation on MuSiQue and NQ. Raw per-pair model outputs and downloaded datasets are not included.",
+  "creators": [
+    {"name": "Bhargava, Parv"}
+  ],
+  "license": "MIT",
+  "keywords": ["information retrieval", "reranking", "calibration", "retrieval-augmented generation", "decision models"],
+  "access_right": "open"
+}
