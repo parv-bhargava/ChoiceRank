@@ -61,7 +61,8 @@ def ranker_tables(dataset: str, split: str, stand_in: bool = False) -> dict[str,
                 raise FileNotFoundError(f"score {dataset}.{split} with {r} first (scripts/rag_score.py)")
             src = "bge-m3"  # dry-run cost estimate only: same policy count, stand-in scores
             print(f"[dry-run] {r} scores missing; using bge-m3 as a stand-in to size the plan")
-        cal = pd.read_parquet(OUT / f"{dataset}.calib.{src}.parquet")
+        calib = "calib_fd" if split.endswith("_fd") else "calib"  # family-disjoint splits refit on their own calib
+        cal = pd.read_parquet(OUT / f"{dataset}.{calib}.{src}.parquet")
         ev = pd.read_parquet(OUT / f"{dataset}.{split}.{src}.parquet")
         if src == "jev":
             cands = {"C3 strict": "p_choice3", "C3 lenient": "plen_choice3", "Noul": "p_noul"}
@@ -169,7 +170,7 @@ def main():
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset", required=True, choices=["musique", "nq"])
-    ap.add_argument("--split", required=True, choices=["pilot", "main", "final"])
+    ap.add_argument("--split", required=True, choices=["pilot", "main", "final", "final_fd"])
     ap.add_argument("--gen", required=True, help="OpenRouter model id, e.g. qwen/qwen-2.5-7b-instruct")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--i-approve-spend", action="store_true")
@@ -183,7 +184,7 @@ def main():
     plan, prompts = [], {}
     for it in items:
         for name, pids in policies(it, tables).items():
-            if args.split == "final" and name not in FINAL_POLICIES:
+            if args.split.startswith("final") and name not in FINAL_POLICIES:
                 continue
             pr = build_prompt(it, pids)
             k = GenCache.key(args.gen, pr)

@@ -38,7 +38,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True)
     ap.add_argument("--dataset", required=True, choices=["musique", "nq"])
-    ap.add_argument("--split", nargs="+", required=True, choices=["calib", "pilot", "main", "final"])
+    ap.add_argument("--split", nargs="+", required=True, choices=["calib", "pilot", "main", "final", "calib_fd", "final_fd"])
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--i-approve-spend", action="store_true")
     ap.add_argument("--max-usd", type=float, default=0.5)

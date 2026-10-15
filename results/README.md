@@ -98,6 +98,7 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 | `musique_clean_subset_summary.csv` | F1/EM per policy and generator on the 329-question subset. |
 | `musique_clean_subset_tests.csv` | Jev vs. bge and threshold-rule tests on the subset: question-level Holm, plus family-bootstrap 95% CIs (212 families, 20,000 replicates, seed 13). |
 | `musique_clean_subset_metadata.json` | Subset definition, counts and settings. |
+| `musique_fd_split_audit.json` | Family-disjoint MuSiQue splits (`calib_fd`, `final_fd`; issue #3): sizes, hop mix, family counts, and checks that no decomposition ID or family is shared with each other or the original pilot. |
 
 ## 4. Reproducibility
 
@@ -121,6 +122,7 @@ python scripts/truncation_stats.py       # truncation.csv
 python scripts/rag_eval.py --dataset musique --split final --gen <generator>   # rag_{dataset}_{split}_{generator}.csv
 python scripts/rag_summary.py            # rag_final_summary.csv, rag_final_tests.csv
 python scripts/audit_musique_split_overlap.py   # musique_split_overlap_audit.*
+python scripts/audit_musique_split_overlap.py --family-disjoint   # musique_fd_split_audit.json
 python scripts/musique_clean_subset.py          # musique_clean_subset_*
 python scripts/reproduction_manifest.py         # reproduction_manifest.json
 ```

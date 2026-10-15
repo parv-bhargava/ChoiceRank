@@ -115,5 +115,37 @@ def main():
     print(json.dumps(report, indent=2))
 
 
+def family_disjoint():
+    """Verify the family-disjoint splits (issue #3): no shared decomposition ID or family between calib_fd, final_fd
+    and the original pilot -> results/musique_fd_split_audit.json"""
+    from collections import Counter
+
+    from choicerank.rag import _load_musique, musique_families
+
+    fam = musique_families(_load_musique())
+    splits = {s: load_split("musique", s) for s in ("calib_fd", "final_fd", "pilot")}
+    comps = {s: {c for it in items for c in it.components} for s, items in splits.items()}
+    fams = {s: {fam[it.qid] for it in items} for s, items in splits.items()}
+    pairs = list(combinations(splits, 2))
+    report = {"seed": SEED,
+              "sizes": {s: len(items) for s, items in splits.items()},
+              "hops": {s: dict(sorted(Counter(it.hops for it in items).items())) for s, items in splits.items()},
+              "families": {s: len(f) for s, f in fams.items()},
+              "largest_family": {s: max(Counter(fam[it.qid] for it in items).values()) for s, items in splits.items()},
+              "shared_decomposition_ids": {f"{a}|{b}": len(comps[a] & comps[b]) for a, b in pairs},
+              "shared_families": {f"{a}|{b}": len(fams[a] & fams[b]) for a, b in pairs},
+              "previously_scored_questions": {
+                  s: len({it.qid for it in splits[s]} & {it.qid for o in ("calib", "final") for it in load_split("musique", o)})
+                  for s in ("calib_fd", "final_fd")}}
+    report["family_disjoint"] = not any(report["shared_decomposition_ids"].values()) and not any(report["shared_families"].values())
+    (RESULTS_DIR / "musique_fd_split_audit.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+    print(json.dumps(report, indent=2))
+    if not report["family_disjoint"]:
+        raise SystemExit("family-disjoint splits share components")
+
+
 if __name__ == "__main__":
-    main()
+    if sys.argv[1:] == ["--family-disjoint"]:
+        family_disjoint()
+    else:
+        main()
