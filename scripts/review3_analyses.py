@@ -188,7 +188,10 @@ def meta():
     pairs = [("jev-score4", "bge-m3"), ("jev-score4", "qwen3-reranker-0.6B"), ("jev-score4", "minilm"),
              ("jev-noul", "bge-m3"), ("jev-choice3", "bge-m3"), ("clef-score4", "bge-m3"), ("jev-score4", "clef-score4"),
              ("jev-score4", "qwen3-reranker-8B"), ("jev-score4", "qwen3-reranker-4B"), ("qwen3-reranker-8B", "bge-m3"),
-             ("qwen235-graded", "qwen235-yesno")]
+             ("qwen235-graded", "qwen235-yesno"),
+             # issue #10: full precision vs 4-bit (rows appear once the bf16 runs exist)
+             ("qwen3-reranker-8B-bf16", "qwen3-reranker-8B"), ("qwen3-reranker-4B-bf16", "qwen3-reranker-4B"),
+             ("jev-score4", "qwen3-reranker-8B-bf16")]
     for a, b in pairs:
         for label, dsets in [("all", ALL), ("no_robust04", [d for d in ALL if d != "robust04"])]:
             t = _deltas(a, b, dsets)

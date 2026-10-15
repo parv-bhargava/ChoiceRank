@@ -53,6 +53,9 @@ class Qwen3RerankerJudge(Judge):
     logit is log P(yes) - log P(no), so sigmoid(logit) = P(yes). The official chat template is applied;
     the passage is pre-truncated to `passage_tokens` (default 448, the cross-encoders' budget) so that
     truncation never cuts the template suffix.
+
+    4B/8B load in 4-bit NF4 on CUDA (8 GB GPU) unless full_precision=True (issue #10: bf16 on a >=24 GB GPU);
+    the bf16 configuration has its own judge ID ("...-bf16") so its cache rows and runs stay separate.
     """
 
     PREFIX = ('<|im_start|>system\nJudge whether the Document meets the requirements based on the Query and the '
@@ -60,27 +63,28 @@ class Qwen3RerankerJudge(Judge):
     SUFFIX = "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
     INSTRUCTION = "Given a web search query, retrieve relevant passages that answer the query"
 
-    def __init__(self, size: str = "0.6B", passage_tokens: int = 448, batch_size: int = 16):
+    def __init__(self, size: str = "0.6B", passage_tokens: int = 448, batch_size: int = 16, full_precision: bool = False):
         # Direct transformers path (sentence-transformers >= 6 rejects the 4B/8B checkpoints' chat template for pairs).
         # A query-document pair is tokenized as a text pair, which for this tokenizer is plain concatenation,
         # exactly as sentence-transformers' CrossEncoder did for the 0.6B runs (verified identical).
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
         self.size, self.passage_tokens, self.batch_size = size, passage_tokens, batch_size
+        self.full_precision = full_precision
         name = f"tomaarsen/Qwen3-Reranker-{size}-seq-cls"
         self.tok = AutoTokenizer.from_pretrained(name)
         self.tok.padding_side = "left"
         if self.tok.pad_token is None:
             self.tok.pad_token = self.tok.eos_token
         self.dev = "cuda" if torch.cuda.is_available() else "cpu"
-        if size in ("4B", "8B") and self.dev == "cuda":  # 8 GB GPU: 4-bit NF4 weights, fp16 compute
+        if size in ("4B", "8B") and self.dev == "cuda" and not full_precision:  # 8 GB GPU: 4-bit NF4, fp16 compute
             from transformers import BitsAndBytesConfig
 
             q = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type="nf4", bnb_4bit_compute_dtype=torch.float16)
             self.model = AutoModelForSequenceClassification.from_pretrained(name, quantization_config=q, device_map="cuda")
             self.batch_size = 8
         else:
-            dtype = torch.float16 if self.dev == "cuda" else torch.float32
+            dtype = (torch.bfloat16 if full_precision else torch.float16) if self.dev == "cuda" else torch.float32
             self.model = AutoModelForSequenceClassification.from_pretrained(name, dtype=dtype).to(self.dev)
         self.model.eval()
         if self.model.config.pad_token_id is None:
@@ -88,7 +92,7 @@ class Qwen3RerankerJudge(Judge):
 
     @property
     def judge_id(self) -> str:
-        return f"ce:qwen3-reranker-{self.size}"
+        return f"ce:qwen3-reranker-{self.size}" + ("-bf16" if self.full_precision else "")
 
     def _judge(self, query, passages):
         t0 = time.perf_counter()

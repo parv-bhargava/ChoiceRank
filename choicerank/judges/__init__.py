@@ -3,6 +3,7 @@
   laya, laya-multilingual              typed decision model (free, local CPU)
   jev, clef, clef-flash                typed decision models (PAID APIs)
   jeff-0.8b, jeff-2b                   typed decision model (free, local server / Colab T4)
+  qwen3-reranker-<size>[-bf16]         label-probability LLM reranker; 4B/8B are 4-bit on CUDA unless -bf16
 """
 
 from __future__ import annotations
@@ -30,6 +31,8 @@ def make_judge(model: str, qtype: str = "choice3") -> Judge:
     if model.startswith("qwen3-reranker-"):  # e.g. qwen3-reranker-0.6B: label-probability (P(yes)) LLM reranker
         from .crossencoder import Qwen3RerankerJudge
 
+        if model.endswith("-bf16"):  # e.g. qwen3-reranker-8B-bf16: full precision instead of 4-bit (issue #10)
+            return Qwen3RerankerJudge(model.split("-")[2], full_precision=True)
         return Qwen3RerankerJudge(model.split("-")[-1])
     if model == "laya":
         from .laya_judge import LayaJudge

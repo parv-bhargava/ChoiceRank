@@ -29,6 +29,8 @@ GROUPS = [
     ("Label-probability LLM rerankers", [("qwen3-reranker-0.6B", "Qwen3-Reranker-0.6B"),
                                          ("qwen3-reranker-4B", "Qwen3-Reranker-4B (4-bit)"),
                                          ("qwen3-reranker-8B", "Qwen3-Reranker-8B (4-bit)"),
+                                         ("qwen3-reranker-4B-bf16", "Qwen3-Reranker-4B (bf16)"),
+                                         ("qwen3-reranker-8B-bf16", "Qwen3-Reranker-8B (bf16)"),
                                          ("qwen235-yesno", "Qwen3-235B, P(yes)"),
                                          ("qwen235-graded", "Qwen3-235B, graded 0--4"),
                                          ("qwen27base-yesno", "Qwen3.8-27B (Clef's base), P(yes)"),
