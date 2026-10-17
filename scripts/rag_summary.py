@@ -159,6 +159,7 @@ def write_latex(S, T, split="final"):
             (None, "bge-reranker-v2-m3"), ("bge-m3:top1", r"\quad top-1"), ("bge-m3:top3", r"\quad top-3"),
             ("bge-m3:adaptive", r"\quad adaptive-$k$"), ("bge-m3:floor2+thr0.3", r"\quad top-2 $+$ $P>0.3$")]
     cols = [(d, g) for d in DS for g in GENS.values() if ((S.dataset == d) & (S.gen == g)).any()]
+    dsets = [d for d in DS if (S.dataset == d).any()]  # final_fd is MuSiQue only
     sig = T[T.comparison.str.startswith("a")].set_index(["dataset", "gen", "A"])
     caption = (r"\caption{RQ3: answer F1 on the original 1{,}000 ID-disjoint final questions per dataset; MuSiQue component families overlap design splits. "
            r"Avg.\ $n$: mean number of selected passages (independent of generator). $^\dagger$: Jev significantly better than "
@@ -167,22 +168,23 @@ def write_latex(S, T, split="final"):
            r"Thresholds use a readout selected with labelled calibration questions; the $P>0.3$ rows are Platt-scaled.}")
     label, name = r"\label{tab:rag}", "rag.tex"
     if split == "final_fd":
-        caption = (r"\caption{RQ3 on the family-disjoint MuSiQue split: answer F1 on final questions whose decomposition "
-                   r"families share no sub-question with the calibration split or the original pilot. Policies and "
+        caption = (r"\caption{RQ3 on the family-disjoint MuSiQue split: answer F1 on the 597 final questions (88\% 2-hop) whose "
+                   r"decomposition families share no sub-question with the calibration split or the original pilot. Policies and "
                    r"thresholds are those locked after the original pilot; Platt scaling and Jev's readout are refit on "
                    r"the family-disjoint calibration split. $^\dagger$: Jev significantly better than bge-reranker-v2-m3 "
                    r"under the same policy (question-level paired $t$-test, Holm-corrected, $p<0.05$). Family-bootstrap "
                    r"intervals are given in the text.}")
         label, name = r"\label{tab:rag-fd}", "rag-fd.tex"
     out = [r"\begin{table*}[t]", r"\centering", r"\footnotesize", r"\setlength{\tabcolsep}{4pt}", caption, label,
-           r"\begin{tabular}{l" + "r" * len(cols) + "rr}", r"\toprule",
+           r"\begin{tabular}{l" + "r" * (len(cols) + len(dsets)) + "}", r"\toprule",
            " & " + " & ".join(rf"\multicolumn{{{sum(1 for c in cols if c[0] == d)}}}{{c}}{{{DS[d]}}}" for d in DS
-                                if any(c[0] == d for c in cols)) + r" & \multicolumn{2}{c}{Avg.\ $n$} \\",
+                                if any(c[0] == d for c in cols))
+           + (rf" & \multicolumn{{{len(dsets)}}}{{c}}{{Avg.\ $n$}} \\" if len(dsets) > 1 else r" & Avg.\ $n$ \\"),
            "Policy & " + " & ".join(g.split("-")[0] + "-" + g.split("-")[1] if "-" in g else g for _, g in cols)
-           + r" & MuSiQue & NQ \\", r"\midrule"]
+           + " & " + " & ".join(DS[d] if len(dsets) > 1 else "" for d in dsets) + r" \\", r"\midrule"]
     for key, label in rows:
         if key is None:
-            out.append(rf"\multicolumn{{{len(cols) + 3}}}{{l}}{{\textit{{{label}}}}} \\")
+            out.append(rf"\multicolumn{{{len(cols) + len(dsets) + 1}}}{{l}}{{\textit{{{label}}}}} \\")
             continue
         cells = []
         for d, g in cols:
@@ -192,7 +194,7 @@ def write_latex(S, T, split="final"):
                 txt += r"$^\dagger$"
             cells.append(txt)
         ns = []
-        for d in DS:
+        for d in dsets:
             v = S[(S.dataset == d) & (S.gen == "Qwen2.5-7B") & (S.policy == key)].n
             ns.append(f"{v.iloc[0]:.1f}" if len(v) else "--")
         out.append(f"{label} & " + " & ".join(cells) + " & " + " & ".join(ns) + r" \\")
