@@ -1,7 +1,16 @@
 family,dataset,system,variant,ndcg10,ECE
 Jev Noul,dl19,jev-noul,original,71.34700723636975,12.360655737704917
+Jev Noul,dl19,jev-noul_p1,paraphrase1,73.48451415471125,25.851572884359776
+Jev Noul,dl19,jev-noul_p2,paraphrase2,72.52635940663657,16.53921134249003
+Jev Noul,dl19,jev-noul_p3,paraphrase3,70.74278426194138,7.525919361984937
 Jev Noul,dl20,jev-noul,original,70.04579442084945,20.703742567331236
+Jev Noul,dl20,jev-noul_p1,paraphrase1,69.77749184185377,34.5215110178384
+Jev Noul,dl20,jev-noul_p2,paraphrase2,68.10717696751453,26.006645680307805
+Jev Noul,dl20,jev-noul_p3,paraphrase3,68.86400104426794,14.257782441413081
 Jev Noul,scifact,jev-noul,original,79.76795286248597,3.0899686311152643
+Jev Noul,scifact,jev-noul_p1,paraphrase1,79.71733368618472,6.490923046118935
+Jev Noul,scifact,jev-noul_p2,paraphrase2,80.41275226719723,5.147767469799107
+Jev Noul,scifact,jev-noul_p3,paraphrase3,78.19488990942727,1.9598545017686713
 Qwen3-Reranker-0.6B,dl19,qwen3-reranker-0.6B,original,69.39830839361127,38.99631055390573
 Qwen3-Reranker-0.6B,dl19,qwen3-reranker-0.6B-instr1,paraphrase1,71.2282719403826,23.54259558108452
 Qwen3-Reranker-0.6B,dl19,qwen3-reranker-0.6B-instr2,paraphrase2,71.24630444924743,26.016087107417498
@@ -18,4 +27,5 @@ Qwen3-Reranker-8B,dl19,qwen3-reranker-8B,original,73.60871160071302,14.219191211
 Qwen3-Reranker-8B,dl20,qwen3-reranker-8B,original,66.47031412854098,20.488523859076697
 Qwen3-Reranker-8B,scifact,qwen3-reranker-8B,original,79.19967522097448,4.1015076452051495
 Qwen3-235B P(yes),dl19,qwen235-yesno,original,68.60471441780356,18.58268260569775
+Qwen3-235B P(yes),dl19,qwen235-v1-yesno,paraphrase1,70.05727676688888,30.4147310062296
 Qwen3-235B P(yes),dl20,qwen235-yesno,original,66.5079286095721,22.029680764863425

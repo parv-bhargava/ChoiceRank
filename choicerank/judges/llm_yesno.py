@@ -109,6 +109,12 @@ class LLMYesNoJudge(Judge):
             if r.status_code in (408, 500, 502, 503, 504, 520, 521, 522, 523, 524):
                 time.sleep(min(2 ** attempt, 60))
                 continue
+            if r.status_code == 400 and attempt < 4:  # sporadic provider-side 400s; a malformed request fails 5 times
+                last_err = r.text[:500]
+                time.sleep(min(2 ** attempt, 30))
+                continue
+            if r.status_code == 400:
+                raise RuntimeError(f"400 from OpenRouter after retries: {r.text[:500]}")
             r.raise_for_status()
             d = r.json()
             if "choices" not in d:  # provider error returned with HTTP 200 (body holds {"error": ...})
