@@ -107,6 +107,8 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 - SHA-256 hashes of every input file and analysis script;
 - the git commit and a note on model revisions.
 
+`determinism.csv` (issue #6): Jev run-to-run stability. DL19 and SciFact were re-scored with the same snapshot in all three formats (`run_rerank.py --repeat-tag rep2`). Per format: mean/max absolute difference in P(rel) and in the ranking score, share of identical pairs, per-query Kendall tau (mean/min), and nDCG@10 of both runs.
+
 ## 5. Regenerating these files
 
 Run from the repository root, after the run scripts have filled `runs/` (see the main README):
@@ -122,6 +124,7 @@ python scripts/rag_eval.py --dataset musique --split final --gen <generator>   #
 python scripts/rag_summary.py            # rag_final_summary.csv, rag_final_tests.csv
 python scripts/audit_musique_split_overlap.py   # musique_split_overlap_audit.*
 python scripts/musique_clean_subset.py          # musique_clean_subset_*
+python scripts/determinism.py                  # determinism.csv
 python scripts/reproduction_manifest.py         # reproduction_manifest.json
 ```
 
