@@ -68,6 +68,8 @@ class LLMYesNoJudge(Judge):
     def __init__(self, alias: str, passage_tokens: int = 448, workers: int = 24):
         self.alias = alias
         self.model, self.providers, self.pin, self.pout = MODELS[alias]
+        if os.environ.get("CHOICERANK_PROVIDERS"):  # e.g. "Parasail" after GMICloud retired Qwen3-235B (2026-10-18)
+            self.providers = os.environ["CHOICERANK_PROVIDERS"].split(",")
         self.passage_tokens = passage_tokens
         self.workers = int(os.environ.get("CHOICERANK_WORKERS", workers))  # some providers rate-limit hard (429)
         self.client = httpx.Client(timeout=60, limits=httpx.Limits(max_connections=64, max_keepalive_connections=32))
