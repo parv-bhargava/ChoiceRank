@@ -76,13 +76,15 @@ def rag_selection():
              r"last (answer-bearing) supporting paragraph and whether it contains the answer string.}",
              r"\label{tab:ragsel}", r"\begin{tabular}{llrrrr}", r"\toprule",
              r"Data & Ranker & R@1 & R@3 & R@5 & all-gold@5 \\", r"\midrule"]
+    rankers = [(rk, nm) for rk, nm in (("jev", "Jev"), ("bge-m3", "bge-v2-m3"), ("qwen3-reranker-8B", "Qwen3-Reranker-8B"),
+                                        ("qwen3-reranker-0.6B", "Qwen3-Reranker-0.6B")) if rk in set(s.ranker)]  # issue #4
     for ds in ("musique", "nq"):
-        for rk, nm in (("jev", "Jev"), ("bge-m3", "bge-v2-m3")):
+        for rk, nm in rankers:
             g = s[(s.dataset == ds) & (s.ranker == rk)].set_index("k")
             lines.append(f"{'MuSiQue' if ds == 'musique' else 'NQ'} & {nm} & {g.loc[1].gold_recall:.1f} & "
                          f"{g.loc[3].gold_recall:.1f} & {g.loc[5].gold_recall:.1f} & {g.loc[5].all_gold:.1f} \\\\")
     lines += [r"\midrule", r"\multicolumn{6}{l}{MuSiQue top-1: \quad first hop / last hop / contains answer (\%)} \\"]
-    for rk, nm in (("jev", "Jev"), ("bge-m3", "bge-v2-m3")):
+    for rk, nm in [(rk, nm) for rk, nm in rankers if rk in h.index]:
         lines.append(rf" & {nm} & \multicolumn{{4}}{{l}}{{{h.loc[rk].top1_first_hop:.1f} / {h.loc[rk].top1_last_hop:.1f} / "
                      rf"{h.loc[rk].top1_contains_answer:.1f}}} \\")
     lines += [r"\bottomrule", r"\end{tabular}", r"\end{table*}"]

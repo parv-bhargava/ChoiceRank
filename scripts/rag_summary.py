@@ -171,11 +171,14 @@ def write_latex(S, T):
                      (f"{rk}:adaptive", r"\quad adaptive-$k$"), (f"{rk}:floor2+thr0.3", r"\quad top-2 $+$ $P>0.3$")]
     cols = [(d, g) for d in DS for g in GENS.values() if ((S.dataset == d) & (S.gen == g)).any()]
     sig = T[T.comparison.str.startswith("a")].set_index(["dataset", "gen", "A"])
+    sig8 = T[T.comparison == "c: jev vs qwen3-reranker-8B"].set_index(["dataset", "gen", "A"])  # issue #4
+    dd = (r"$^\ddagger$: Jev significantly better than Qwen3-Reranker-8B under the same policy (same test and correction, "
+          r"added after final results). ") if len(sig8) else ""
     out = [r"\begin{table*}[t]", r"\centering", r"\footnotesize", r"\setlength{\tabcolsep}{4pt}",
            r"\caption{RQ3: answer F1 on the original 1{,}000 ID-disjoint final questions per dataset; MuSiQue component families overlap design splits. "
            r"Avg.\ $n$: mean number of selected passages (independent of generator). $^\dagger$: Jev significantly better than "
            r"bge-reranker-v2-m3 under the same policy in the original question-level paired $t$-test (Holm-corrected, $p<0.05$); these tests do not account for family dependence. "
-           r"Displayed policies and ranker-effect comparisons were fixed after separate pilot questions. "
+           + dd + r"Displayed policies and ranker-effect comparisons were fixed after separate pilot questions. "
            r"Thresholds use a readout selected with labelled calibration questions; the $P>0.3$ rows are Platt-scaled.}",
            r"\label{tab:rag}",
            r"\begin{tabular}{l" + "r" * len(cols) + "rr}", r"\toprule",
@@ -193,6 +196,8 @@ def write_latex(S, T):
             txt = f"{v.iloc[0]:.1f}" if len(v) else "--"
             if (d, g, key) in sig.index and sig.loc[(d, g, key)].p_holm < 0.05 and sig.loc[(d, g, key)].delta_F1 > 0:
                 txt += r"$^\dagger$"
+            if (d, g, key) in sig8.index and sig8.loc[(d, g, key)].p_holm < 0.05 and sig8.loc[(d, g, key)].delta_F1 > 0:
+                txt += r"$^\ddagger$"
             cells.append(txt)
         ns = []
         for d in DS:
