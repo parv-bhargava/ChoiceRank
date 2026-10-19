@@ -1,0 +1,50 @@
+{
+  "seed": 13,
+  "sizes": {
+    "calib_fd": 199,
+    "final_fd": 597,
+    "pilot": 300
+  },
+  "hops": {
+    "calib_fd": {
+      "2": 176,
+      "3": 19,
+      "4": 4
+    },
+    "final_fd": {
+      "2": 526,
+      "3": 58,
+      "4": 13
+    },
+    "pilot": {
+      "2": 155,
+      "3": 94,
+      "4": 51
+    }
+  },
+  "families": {
+    "calib_fd": 95,
+    "final_fd": 270,
+    "pilot": 179
+  },
+  "largest_family": {
+    "calib_fd": 6,
+    "final_fd": 20,
+    "pilot": 10
+  },
+  "shared_decomposition_ids": {
+    "calib_fd|final_fd": 0,
+    "calib_fd|pilot": 0,
+    "final_fd|pilot": 0
+  },
+  "shared_families": {
+    "calib_fd|final_fd": 0,
+    "calib_fd|pilot": 0,
+    "final_fd|pilot": 0
+  },
+  "previously_scored_questions": {
+    "calib_fd": 116,
+    "final_fd": 323
+  },
+  "family_disjoint": true
+}

@@ -74,10 +74,11 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 
 | File | Contents |
 |---|---|
-| `rag_{dataset}_{split}_{generator}.csv` | Per selection policy: EM, F1, accuracy, mean passages `n`, generator input `tokens`, share of empty selections, selection precision/recall, all-gold rate. `pilot` files are the design runs; `final` files are the 1,000 held-out questions. NQ files add EM/empty on questions without a gold passage. |
+| `rag_{dataset}_{split}_{generator}.csv` | Per selection policy: EM, F1, accuracy, mean passages `n`, generator input `tokens`, share of empty selections, selection precision/recall, all-gold rate. `pilot` files are the design runs; `final` files are the 1,000 held-out questions; `final_fd` files are the 597 family-disjoint MuSiQue questions (primary MuSiQue result, issue #3). NQ files add EM/empty on questions without a gold passage. |
 | `rag_final_summary.csv` | All final runs in one table (dataset × generator × policy). |
 | `rag_final_tests.csv` | Paired tests: (a) Jev vs. bge under each policy (Holm per dataset × generator), (b) threshold rule vs. fixed *k*, with 95% CIs, TOST (±2 F1, post-hoc) and a test pooled over generators. |
 | `rag_final_tests_em.csv` | Test (a), Jev vs. bge under each policy, repeated on Exact Match (`delta_EM`, Holm per dataset × generator). EM is a secondary metric. |
+| `rag_final_fd_summary.csv`, `rag_final_fd_tests.csv` | The same summary and tests on the family-disjoint MuSiQue split, plus family-bootstrap 95% CIs (`fam_ci_lo`, `fam_ci_hi`; 20,000 replicates, seed 13). |
 | `rag_thrraw.csv` | Post-hoc raw-probability thresholds vs. Platt threshold, top-3 and Adaptive-*k*. The raw readout was chosen on labelled calibration questions, so these are not label-free. |
 
 **Generator-free diagnostics:**
@@ -99,6 +100,7 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 | `musique_clean_subset_summary.csv` | F1/EM per policy and generator on the 329-question subset. |
 | `musique_clean_subset_tests.csv` | Jev vs. bge and threshold-rule tests on the subset: question-level Holm, plus family-bootstrap 95% CIs (212 families, 20,000 replicates, seed 13). |
 | `musique_clean_subset_metadata.json` | Subset definition, counts and settings. |
+| `musique_fd_split_audit.json` | Family-disjoint MuSiQue splits (`calib_fd`, `final_fd`; issue #3): sizes, hop mix, family counts, and checks that no decomposition ID or family is shared with each other or the original pilot. |
 
 ## 4. Reproducibility
 
@@ -123,7 +125,9 @@ python scripts/depth_analysis.py         # depth.csv
 python scripts/truncation_stats.py       # truncation.csv
 python scripts/rag_eval.py --dataset musique --split final --gen <generator>   # rag_{dataset}_{split}_{generator}.csv
 python scripts/rag_summary.py            # rag_final_summary.csv, rag_final_tests.csv, rag_final_tests_em.csv
+python scripts/rag_summary.py --split final_fd   # rag_final_fd_summary.csv, rag_final_fd_tests.csv, paper/tables/rag-fd.tex
 python scripts/audit_musique_split_overlap.py   # musique_split_overlap_audit.*
+python scripts/audit_musique_split_overlap.py --family-disjoint   # musique_fd_split_audit.json
 python scripts/musique_clean_subset.py          # musique_clean_subset_*
 python scripts/determinism.py                  # determinism.csv
 python scripts/reproduction_manifest.py         # reproduction_manifest.json

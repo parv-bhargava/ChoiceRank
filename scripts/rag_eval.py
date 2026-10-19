@@ -50,7 +50,7 @@ def file_hash(path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset", required=True, choices=["musique", "nq"])
-    ap.add_argument("--split", required=True, choices=["pilot", "main", "final"])
+    ap.add_argument("--split", required=True, choices=["pilot", "main", "final", "final_fd"])
     ap.add_argument("--gen", required=True)
     ap.add_argument("--allow-partial", action="store_true", help="explicit exploratory evaluation of a partial run")
     args = ap.parse_args()
@@ -61,7 +61,7 @@ def main():
     if not args.allow_partial:
         from scripts.rag_generate import FINAL_POLICIES
 
-        validate_grid(df, items, FINAL_POLICIES if args.split == "final" else None)
+        validate_grid(df, items, FINAL_POLICIES if args.split.startswith("final") else None)
     recs = []
     for r in df.itertuples():
         it = items[r.qid]

@@ -7,6 +7,11 @@ Datasets (DATASETS.md):
 Splits are seeded: `calib` (Platt fitting, 200 q), `pilot` (300 q, policy design), `main` (1,000 q
 containing the pilot), and `final` (1,000 q disjoint from calib AND pilot). Policies revised after the
 pilot must be evaluated on `final` only.
+
+MuSiQue questions share decomposition sub-questions, so the ID-disjoint splits above share component
+families. The family-disjoint splits `calib_fd` and `final_fd` (issue #3) assign whole families, i.e. connected
+components of the graph linking questions that share any decomposition ID, to one split. Families containing an
+original pilot question are excluded, so the policies locked after the pilot are evaluated on unseen families.
 """
 
 from __future__ import annotations
@@ -27,6 +32,7 @@ from .data import Candidate, Query
 RAG_DIR = DATA_DIR / "rag"
 SEED = 13
 N_CALIB, N_PILOT, N_MAIN = 200, 300, 1000
+FD_SPLITS = ("calib_fd", "final_fd")
 NQ_DEPTH = 20
 SOURCES = {  # fetched on first use
     "musique_ans_v1.0_dev.jsonl": "https://huggingface.co/datasets/dgslibisey/MuSiQue/resolve/main/musique_ans_v1.0_dev.jsonl",
@@ -64,6 +70,7 @@ class RagItem:
     answers: list[str]
     passages: list[Passage]
     hops: int = 1
+    components: tuple[str, ...] = ()  # MuSiQue decomposition sub-question IDs
 
     def as_query(self) -> Query:
         """Judge input; passage text uses the BEIR-style "Title: .. Content: .." format of the ranking runs."""
@@ -80,8 +87,55 @@ def _load_musique() -> list[RagItem]:
             answers=[r["answer"], *r.get("answer_aliases", [])],
             passages=[Passage(str(p["idx"]), p["title"], p["paragraph_text"], bool(p["is_supporting"]))
                       for p in r["paragraphs"]],
-            hops=int(r["id"][0])))
+            hops=int(r["id"][0]), components=tuple(str(h["id"]) for h in r["question_decomposition"])))
     return items
+
+
+def musique_families(items: list[RagItem]) -> dict[str, str]:
+    """qid -> family ID: connected components over shared decomposition IDs; a family's ID is its smallest qid."""
+    parent = {it.qid: it.qid for it in items}
+
+    def find(q):
+        while parent[q] != q:
+            parent[q] = parent[parent[q]]
+            q = parent[q]
+        return q
+
+    seen = {}
+    for it in sorted(items, key=lambda x: x.qid):
+        for c in it.components:
+            if c in seen:
+                a, b = find(it.qid), find(seen[c])
+                parent[max(a, b)] = min(a, b)
+            else:
+                seen[c] = it.qid
+    return {q: find(q) for q in parent}
+
+
+def _family_disjoint(items: list[RagItem], pilot: list[RagItem]) -> dict[str, list[RagItem]]:
+    """Whole families not touching the original pilot, shuffled with SEED; `calib_fd` takes families until each
+    hop count reaches its share of N_CALIB (in the proportions of this eligible pool, so calib_fd and final_fd have
+    the same hop mix), skipping families that would overshoot it; `final_fd` gets every remaining family."""
+    fam = musique_families(items)
+    excluded = {fam[it.qid] for it in pilot}
+    members: dict[str, list[RagItem]] = {}
+    for it in sorted(items, key=lambda x: x.qid):
+        if fam[it.qid] not in excluded:
+            members.setdefault(fam[it.qid], []).append(it)
+    order = sorted(members)
+    random.Random(SEED).shuffle(order)
+    pool = [it for f in order for it in members[f]]
+    hops = Counter(it.hops for it in pool)
+    target = {h: round(N_CALIB * n / len(pool)) for h, n in hops.items()}
+    have, calib, final = Counter(), [], []
+    for f in order:
+        need = Counter(it.hops for it in members[f])
+        if all(have[h] + n <= target.get(h, 0) for h, n in need.items()):
+            calib += members[f]
+            have += need
+        else:
+            final += members[f]
+    return {"calib_fd": calib, "final_fd": final}
 
 
 def _load_nq() -> list[RagItem]:
@@ -96,6 +150,10 @@ def _load_nq() -> list[RagItem]:
 
 def load_split(dataset: str, split: str) -> list[RagItem]:
     """Seeded, disjoint splits. MuSiQue is stratified by hop count (2/3/4-hop in dev proportions)."""
+    if split in FD_SPLITS:
+        if dataset != "musique":
+            raise ValueError("family-disjoint splits are defined for MuSiQue only")
+        return _family_disjoint(_load_musique(), load_split("musique", "pilot"))[split]
     items = _load_musique() if dataset == "musique" else _load_nq()
     rng = random.Random(SEED)
     if dataset == "musique":
