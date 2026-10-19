@@ -19,7 +19,7 @@ from . import DATA_DIR
 
 RUN_URL = (
     "https://huggingface.co/datasets/castorini/rank_llm_data/resolve/main/"
-    "retrieve_results/BM25/retrieve_results_{key}_top100.jsonl"
+    "retrieve_results/{stage}/retrieve_results_{key}_top100.jsonl"
 )
 QRELS_URL = "https://raw.githubusercontent.com/castorini/eval/master/qrels/{file}"
 
@@ -37,6 +37,7 @@ class DatasetSpec:
     max_queries: int | None = None  # default subsample size (None = all)
     qrels_url: str | None = None  # full URL when the qrels are not in castorini/eval
     build: str | None = None  # name of a local builder for collections without a published BM25 run
+    first_stage: str = "BM25"  # RankLLM retrieve_results folder; SPLADE_P_P_ENSEMBLE_DISTIL for the issue #13 check
 
 
 B = "qrels.beir-v1.0.0-{}.test.txt"
@@ -47,6 +48,11 @@ DATASETS: dict[str, DatasetSpec] = {
     "dl21": DatasetSpec("dl21", "qrels.dl21-passage.txt", 2, dense_pool=True),
     "dl22": DatasetSpec("dl22", "qrels.dl22-passage.txt", 2, dense_pool=True),
     "dl23": DatasetSpec("dl23", "qrels.dl23-passage.txt", 2, dense_pool=True),
+    # Neural first stage (issue #13): RankLLM's SPLADE++ EnsembleDistil top-100 for DL19/20, same qrels
+    "dl19-splade": DatasetSpec("dl19", "qrels.dl19-passage.txt", 2, dense_pool=True,
+                               first_stage="SPLADE_P_P_ENSEMBLE_DISTIL"),
+    "dl20-splade": DatasetSpec("dl20", "qrels.dl20-passage.txt", 2, dense_pool=True,
+                               first_stage="SPLADE_P_P_ENSEMBLE_DISTIL"),
     # BEIR-8 (RankGPT protocol)
     "trec-covid": DatasetSpec("covid", B.format("trec-covid"), 1, dense_pool=True, readout="lenient"),  # 1 = partially
     "nfcorpus": DatasetSpec("nfc", B.format("nfcorpus"), 1),
@@ -73,7 +79,8 @@ ALL = DL + BEIR8
 CALIB = [d for d in ALL if DATASETS[d].dense_pool]  # collections with judged negatives
 CORE = ["dl19", "dl20", "trec-covid", "nfcorpus", "scifact"]  # original 2-week core (kept for reference)
 NOVEL = ["noveleval", "futurequery"]  # newer-content checks, reported separately (not in ALL)
-GROUPS = {"core": CORE, "all": ALL, "dl": DL, "beir8": BEIR8, "calib": CALIB, "novel": NOVEL}
+SPLADE = ["dl19-splade", "dl20-splade"]  # neural first-stage check, reported separately (not in ALL)
+GROUPS = {"core": CORE, "all": ALL, "dl": DL, "beir8": BEIR8, "calib": CALIB, "novel": NOVEL, "splade": SPLADE}
 
 
 @dataclass
@@ -91,7 +98,8 @@ class Query:
 
 
 def run_path(name: str):
-    return DATA_DIR / "bm25" / f"{DATASETS[name].run_key}_top100.jsonl"
+    stage = DATASETS[name].first_stage
+    return DATA_DIR / ("bm25" if stage == "BM25" else stage.lower()) / f"{DATASETS[name].run_key}_top100.jsonl"
 
 
 def download_run(name: str) -> None:
@@ -102,7 +110,7 @@ def download_run(name: str) -> None:
     if DATASETS[name].build == "futurequery":
         return _build_futurequery(path)
     tmp = path.with_suffix(".part")
-    url = RUN_URL.format(key=DATASETS[name].run_key)
+    url = RUN_URL.format(stage=DATASETS[name].first_stage, key=DATASETS[name].run_key)
     with httpx.stream("GET", url, follow_redirects=True, timeout=120) as r:
         r.raise_for_status()
         total = int(r.headers.get("content-length", 0)) or None

@@ -14,7 +14,7 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 |---|---|
 | **Units** | nDCG@10, MRR@10, R@20, ECE and F1 are ×100 (e.g. `56.1` = 0.561). Brier score and probabilities are on a 0–1 scale. Latency is in ms per query–passage pair. Cost is USD per 1k queries at 100 passages. |
 | **Candidates** | BM25 top-100 from RankLLM/Pyserini (`depth` = 100). |
-| **Datasets** | `dl19`–`dl23` (TREC DL passage); `trec-covid`, `nfcorpus`, `touche`, `dbpedia`, `scifact`, `signal`, `news`, `robust04` (BEIR-8); `noveleval`, `futurequery` (newer-content checks, not in the 13-collection averages). |
+| **Datasets** | `dl19`–`dl23` (TREC DL passage); `trec-covid`, `nfcorpus`, `touche`, `dbpedia`, `scifact`, `signal`, `news`, `robust04` (BEIR-8); `noveleval`, `futurequery` (newer-content checks, not in the 13-collection averages); `dl19-splade`, `dl20-splade` (same queries and qrels, SPLADE++ top-100 candidates). |
 | **Calibration collections** | The 9 with judged negatives: `dl19`–`dl23`, `trec-covid`, `dbpedia`, `news`, `robust04`. |
 
 **Systems:**
@@ -44,6 +44,7 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 | `judged.csv` | Judged@10 and condensed (judged-only) nDCG′@10, to show sensitivity to incomplete pools. |
 | `depth.csv` | nDCG@10, condensed nDCG′@10 and Judged@10 when only the BM25 top-*k* is reranked (k = 10…100, simulated from the same scores). |
 | `prompt_sensitivity.csv` | nDCG@10 and ECE on DL19, DL20 and SciFact under each system's original prompt and three paraphrases fixed in code before running (issue #12). Rows appear for the variants that have been run. |
+| `first_stage.csv` | Neural first-stage check (issue #13): nDCG@10 on DL19/20 when reranking the BM25 vs. the SPLADE++ EnsembleDistil top-100, with paired differences to bge on the same candidates. |
 
 ## 2. Calibration (RQ2)
 
@@ -126,6 +127,7 @@ python scripts/review3_analyses.py       # all r3_*.csv, rag_thrraw.csv
 python scripts/depth_analysis.py         # depth.csv
 python scripts/truncation_stats.py       # truncation.csv
 python scripts/prompt_sensitivity.py     # prompt_sensitivity.csv
+python scripts/first_stage.py            # first_stage.csv
 python scripts/rag_eval.py --dataset musique --split final --gen <generator>   # rag_{dataset}_{split}_{generator}.csv
 python scripts/rag_score.py --model qwen3-reranker-8B --dataset musique --split calib final   # local GPU; also -0.6B, nq
 python scripts/rag_generate.py --dataset musique --split final --gen <generator> --rankers qwen3-reranker-8B --i-approve-spend --max-usd 1
