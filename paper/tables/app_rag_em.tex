@@ -1,0 +1,29 @@
+\begin{table*}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\caption{RQ3: exact match (EM) on the same questions, policies, and generations as Table~\ref{tab:rag}. Avg.\ $n$: mean number of selected passages. $^\dagger$: Jev significantly better than bge-reranker-v2-m3 under the same policy on EM (question-level paired $t$-test, Holm-corrected over the nine policies, $p<0.05$); these tests do not account for MuSiQue family dependence. EM is a secondary metric.}
+\label{tab:rag-em}
+\begin{tabular}{lrrrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{MuSiQue} & \multicolumn{3}{c}{NQ} & \multicolumn{2}{c}{Avg.\ $n$} \\
+Policy & Qwen2.5-7B & Llama-3.1 & Qwen3-30B & Qwen2.5-7B & Llama-3.1 & Qwen3-30B & MuSiQue & NQ \\
+\midrule
+No context & 2.9 & 3.5 & 4.3 & 16.1 & 19.9 & 23.0 & 0.0 & 0.0 \\
+All 20 passages & 27.8 & 27.0 & 34.9 & 40.6 & 38.4 & 37.4 & 20.0 & 20.0 \\
+Gold passages (oracle) & 47.7 & 41.6 & 51.6 & 47.7 & 47.5 & 45.0 & 2.6 & 3.4 \\
+\multicolumn{9}{l}{\textit{Jev 1.13}} \\
+\quad top-1 & 34.4$^\dagger$ & 26.1$^\dagger$ & 33.1$^\dagger$ & 38.5 & 38.5 & 38.8 & 1.0 & 1.0 \\
+\quad top-3 & 32.6$^\dagger$ & 29.0$^\dagger$ & 36.7$^\dagger$ & 39.7 & 38.2 & 39.0 & 3.0 & 3.0 \\
+\quad top-5 & 31.2 & 30.8$^\dagger$ & 36.5$^\dagger$ & 39.0 & 39.2 & 39.2 & 5.0 & 5.0 \\
+\quad adaptive-$k$ & 34.8$^\dagger$ & 29.3$^\dagger$ & 36.5$^\dagger$ & 39.8 & 38.6 & 38.1 & 2.9 & 6.2 \\
+\quad $P>0.3$ & 32.6$^\dagger$ & 26.1$^\dagger$ & 32.5$^\dagger$ & 38.8 & 39.9 & 38.3 & 2.4 & 2.9 \\
+\quad top-2 $+$ $P>0.3$ & 32.7$^\dagger$ & 28.6$^\dagger$ & 34.7$^\dagger$ & 39.6 & 39.5 & 39.4 & 3.0 & 3.5 \\
+\multicolumn{9}{l}{\textit{bge-reranker-v2-m3}} \\
+\quad top-1 & 12.7 & 10.2 & 13.7 & 36.7 & 36.8 & 37.1 & 1.0 & 1.0 \\
+\quad top-3 & 27.2 & 22.3 & 29.1 & 38.5 & 39.0 & 38.1 & 3.0 & 3.0 \\
+\quad adaptive-$k$ & 20.2 & 16.4 & 22.4 & 38.5 & 39.3 & 38.5 & 3.1 & 7.1 \\
+\quad top-2 $+$ $P>0.3$ & 24.9 & 21.1 & 27.6 & 38.3 & 39.9 & 38.5 & 2.9 & 3.9 \\
+\bottomrule
+\end{tabular}
+\end{table*}

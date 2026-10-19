@@ -1,12 +1,13 @@
 \section{Additional Results}
 
-Table~\ref{tab:depth} reports effectiveness as a function of reranking depth; Table~\ref{tab:readouts} reports both probability readouts for every collection with judged negatives; Table~\ref{tab:judged} reports pool coverage and the pool-bias check for calibration; Table~\ref{tab:ragsel} reports generator-free selection quality for RQ3.
+Table~\ref{tab:depth} reports effectiveness as a function of reranking depth; Table~\ref{tab:readouts} reports both probability readouts for every collection with judged negatives; Table~\ref{tab:judged} reports pool coverage and the pool-bias check for calibration; Table~\ref{tab:ragsel} reports generator-free selection quality for RQ3; Table~\ref{tab:rag-em} reports exact match for the RAG policies of Table~\ref{tab:rag}.
 Code, prompts, and aggregate results are available in the reproduction repository (Declarations). All inputs are public and are downloaded by the code; the RAG splits are regenerated from a fixed seed, and the scripts reproduce every table and figure from the model outputs.
 
 \input{tables/app_depth}
 \input{tables/app_readouts}
 \input{tables/app_judged}
 \input{tables/app_ragsel}
+\input{tables/app_rag_em}
 
 
 \paragraph{RAG prompt.} System message: ``Answer the question. Give only the short answer (a few words), with no explanation.'' User message: ``Answer the question based on the given passages. Give only the short answer (a few words), with no explanation.'' followed by a blank line, the selected passages in rank order (each as ``Passage $i$ (Title: \dots): \dots'', separated by blank lines), a blank line, and ``Question: \{question\}\textbackslash nAnswer:''. When a policy selects no passage, the user message is only ``Question: \{question\}\textbackslash nAnswer:''.

@@ -1,5 +1,5 @@
 """RQ3 final analysis (locked comparisons) -> results/rag_final_summary.csv, results/rag_final_tests.csv,
-paper/tables/rag.tex
+results/rag_final_tests_em.csv, paper/tables/rag.tex, paper/tables/app_rag_em.tex
 
 Pre-registered comparisons (PROGRESS.md, locked before final-split generation):
   (a) ranker effect: Jev vs bge under the same policy (top1/2/3/5, adaptive, floor2+thr0.3/0.5, thrPlatt0.2/0.3)
@@ -7,7 +7,7 @@ Pre-registered comparisons (PROGRESS.md, locked before final-split generation):
   (c) generator input tokens
 Paired two-sided t-tests over questions on F1. Holm correction is applied separately to family (a) and family (b)
 within each (dataset, generator); the four-comparison family also includes exploratory top-2/top-5 comparisons
-not in the lock record. TOST uses a post-hoc +/-2 F1 margin without correction; pooling over generators is exploratory.
+not in the lock record. Family (a) is repeated on Exact Match as a secondary metric (rag_final_tests_em.csv). TOST uses a post-hoc +/-2 F1 margin without correction; pooling over generators is exploratory.
 (Revised 2026-10-04 after internal review: families were previously mixed.)
 """
 
@@ -76,7 +76,7 @@ def per_question(ds, gen):
 
 
 def main():
-    summary, tests, wide_by = [], [], {}
+    summary, tests, tests_em, wide_by = [], [], [], {}
     for ds in DS:
         for gen in GENS:
             if not (RUNS_DIR / "rag" / f"{ds}.final.gen.{gen.replace('/', '_')}.parquet").exists():
@@ -90,6 +90,14 @@ def main():
                                     n=r["n"], tokens=r["tokens"], empty=100 * r["empty"]))  # r["empty"], not Series.empty
             wide = per.pivot(index="qid", columns="policy", values="F1")
             wide_by[(ds, gen)] = wide
+            wide_em = per.pivot(index="qid", columns="policy", values="EM")
+            rows = [paired(wide_em[f"jev:{p}"], wide_em[f"bge-m3:{p}"],
+                           dict(dataset=ds, gen=GENS[gen], comparison="a: jev vs bge", A=f"jev:{p}", B=f"bge-m3:{p}",
+                                metric="EM", design="secondary_metric"))
+                    for p in SHARED]
+            for r, ph in zip(rows, holm([r["p"] for r in rows])):
+                r["p_holm"] = ph
+            tests_em += rows
             fams = {"a: jev vs bge": [(f"jev:{p}", f"bge-m3:{p}") for p in SHARED],
                     "b: calibrated rule": [("jev:floor2+thr0.3", p) for p in B_REFS]}
             for kind, pairs in fams.items():
@@ -112,9 +120,11 @@ def main():
             for r, ph in zip(rows, holm([r["p"] for r in rows])):
                 r["p_holm"] = ph
             tests += rows
-    S, T = pd.DataFrame(summary), pd.DataFrame(tests)
+    S, T, TE = pd.DataFrame(summary), pd.DataFrame(tests), pd.DataFrame(tests_em)
     S.to_csv(RESULTS_DIR / "rag_final_summary.csv", index=False)
     T.to_csv(RESULTS_DIR / "rag_final_tests.csv", index=False)
+    # paired() names the difference delta_F1; in this file it is the EM difference
+    TE.rename(columns={"delta_F1": "delta_EM"}).to_csv(RESULTS_DIR / "rag_final_tests_em.csv", index=False)
     show = ["none", "all", "gold", "jev:top1", "jev:top3", "jev:top5", "jev:adaptive", "jev:floor2+thr0.3",
             "jev:floor2+thr0.5", "jev:thrPlatt0.3", "bge-m3:top3", "bge-m3:adaptive", "bge-m3:floor2+thr0.3"]
     piv = S[S.policy.isin(show)].pivot_table(index="policy", columns=["dataset", "gen"], values="F1").reindex(show)
@@ -122,9 +132,10 @@ def main():
     print()
     print(T.round(4).to_string(index=False))
     write_latex(S, T)
+    write_latex(S, TE, metric="EM")
 
 
-def write_latex(S, T):
+def write_latex(S, T, metric="F1"):
     rows = [("none", "No context"), ("all", "All 20 passages"), ("gold", "Gold passages (oracle)"),
             (None, "Jev 1.13"), ("jev:top1", r"\quad top-1"), ("jev:top3", r"\quad top-3"), ("jev:top5", r"\quad top-5"),
             ("jev:adaptive", r"\quad adaptive-$k$"), ("jev:thrPlatt0.3", r"\quad $P>0.3$"),
@@ -133,13 +144,19 @@ def write_latex(S, T):
             ("bge-m3:adaptive", r"\quad adaptive-$k$"), ("bge-m3:floor2+thr0.3", r"\quad top-2 $+$ $P>0.3$")]
     cols = [(d, g) for d in DS for g in GENS.values() if ((S.dataset == d) & (S.gen == g)).any()]
     sig = T[T.comparison.str.startswith("a")].set_index(["dataset", "gen", "A"])
-    out = [r"\begin{table*}[t]", r"\centering", r"\footnotesize", r"\setlength{\tabcolsep}{4pt}",
-           r"\caption{RQ3: answer F1 on the original 1{,}000 ID-disjoint final questions per dataset; MuSiQue component families overlap design splits. "
+    caption = (r"\caption{RQ3: answer F1 on the original 1{,}000 ID-disjoint final questions per dataset; MuSiQue component families overlap design splits. "
            r"Avg.\ $n$: mean number of selected passages (independent of generator). $^\dagger$: Jev significantly better than "
            r"bge-reranker-v2-m3 under the same policy in the original question-level paired $t$-test (Holm-corrected, $p<0.05$); these tests do not account for family dependence. "
            r"Displayed policies and ranker-effect comparisons were fixed after separate pilot questions. "
-           r"Thresholds use a readout selected with labelled calibration questions; the $P>0.3$ rows are Platt-scaled.}",
-           r"\label{tab:rag}",
+           r"Thresholds use a readout selected with labelled calibration questions; the $P>0.3$ rows are Platt-scaled.}")
+    label = r"\label{tab:rag}"
+    if metric == "EM":
+        caption = (r"\caption{RQ3: exact match (EM) on the same questions, policies, and generations as Table~\ref{tab:rag}. "
+                   r"Avg.\ $n$: mean number of selected passages. $^\dagger$: Jev significantly better than bge-reranker-v2-m3 "
+                   r"under the same policy on EM (question-level paired $t$-test, Holm-corrected over the nine policies, $p<0.05$); "
+                   r"these tests do not account for MuSiQue family dependence. EM is a secondary metric.}")
+        label = r"\label{tab:rag-em}"
+    out = [r"\begin{table*}[t]", r"\centering", r"\footnotesize", r"\setlength{\tabcolsep}{4pt}", caption, label,
            r"\begin{tabular}{l" + "r" * len(cols) + "rr}", r"\toprule",
            " & " + " & ".join(rf"\multicolumn{{{sum(1 for c in cols if c[0] == d)}}}{{c}}{{{DS[d]}}}" for d in DS
                                 if any(c[0] == d for c in cols)) + r" & \multicolumn{2}{c}{Avg.\ $n$} \\",
@@ -151,7 +168,7 @@ def write_latex(S, T):
             continue
         cells = []
         for d, g in cols:
-            v = S[(S.dataset == d) & (S.gen == g) & (S.policy == key)].F1
+            v = S[(S.dataset == d) & (S.gen == g) & (S.policy == key)][metric]
             txt = f"{v.iloc[0]:.1f}" if len(v) else "--"
             if (d, g, key) in sig.index and sig.loc[(d, g, key)].p_holm < 0.05 and sig.loc[(d, g, key)].delta_F1 > 0:
                 txt += r"$^\dagger$"
@@ -162,8 +179,9 @@ def write_latex(S, T):
             ns.append(f"{v.iloc[0]:.1f}" if len(v) else "--")
         out.append(f"{label} & " + " & ".join(cells) + " & " + " & ".join(ns) + r" \\")
     out += [r"\bottomrule", r"\end{tabular}", r"\end{table*}"]
-    (ROOT / "paper" / "tables" / "rag.tex").write_text("\n".join(out), encoding="utf-8")
-    print("wrote paper/tables/rag.tex")
+    name = "rag.tex" if metric == "F1" else "app_rag_em.tex"
+    (ROOT / "paper" / "tables" / name).write_text("\n".join(out), encoding="utf-8")
+    print("wrote paper/tables/" + name)
 
 
 if __name__ == "__main__":
