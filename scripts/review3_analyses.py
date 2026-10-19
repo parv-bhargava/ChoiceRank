@@ -193,7 +193,10 @@ def meta():
              ("jev-score4", "qwen3-reranker-8B"), ("jev-score4", "qwen3-reranker-4B"), ("qwen3-reranker-8B", "bge-m3"),
              ("qwen235-graded", "qwen235-yesno"),
              # issue #5: Qwen8B reading the same first 4,000 characters as Jev (rows appear once the runs exist)
-             ("jev-score4", "qwen3-reranker-8B-4k"), ("qwen3-reranker-8B-4k", "qwen3-reranker-8B")]
+             ("jev-score4", "qwen3-reranker-8B-4k"), ("qwen3-reranker-8B-4k", "qwen3-reranker-8B"),
+             # issue #10: full precision vs 4-bit (rows appear once the bf16 runs exist)
+             ("qwen3-reranker-8B-bf16", "qwen3-reranker-8B"), ("qwen3-reranker-4B-bf16", "qwen3-reranker-4B"),
+             ("jev-score4", "qwen3-reranker-8B-bf16")]
     for a, b in pairs:
         for label, dsets in [("all", ALL), ("no_robust04", [d for d in ALL if d != "robust04"])]:
             t = _deltas(a, b, dsets)
