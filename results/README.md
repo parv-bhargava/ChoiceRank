@@ -91,6 +91,7 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 | `rag_selection.csv` | Gold-passage recall@k and all-gold@k per ranker. |
 | `rag_hit1.csv` | MuSiQue: top-1 is any supporting paragraph (hit@1) / the last hop (last_hop@1), with exact McNemar tests. |
 | `rag_hops.csv` | MuSiQue: top-1 is the first hop / last hop / contains the answer string. |
+| `rag_hop_f1.csv` | Original MuSiQue final split by hop count (2/3/4, from the question ID): F1 of Jev, bge and Qwen3-Reranker-8B per generator and policy, with Jev-minus-other paired differences and unadjusted question-level 95% intervals (issue #26). |
 | `r3_musique_mechanism.csv` | Same diagnostics for every Jev readout and for Qwen3-Reranker-0.6B under three instructions. |
 | `r3_musique_masked.csv` | Same diagnostics with gold-answer strings replaced by `[MASKED]`. Descriptive only: the marker itself reveals where the answer occurred. |
 
@@ -128,6 +129,7 @@ python scripts/depth_analysis.py         # depth.csv
 python scripts/truncation_stats.py       # truncation.csv
 python scripts/prompt_sensitivity.py     # prompt_sensitivity.csv
 python scripts/first_stage.py            # first_stage.csv
+python scripts/rag_hop_f1.py             # rag_hop_f1.csv
 python scripts/rag_eval.py --dataset musique --split final --gen <generator>   # rag_{dataset}_{split}_{generator}.csv
 python scripts/rag_score.py --model qwen3-reranker-8B --dataset musique --split calib final   # local GPU; also -0.6B, nq
 python scripts/rag_generate.py --dataset musique --split final --gen <generator> --rankers qwen3-reranker-8B --i-approve-spend --max-usd 1
