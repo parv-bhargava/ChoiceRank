@@ -25,6 +25,8 @@ MODELS = {  # alias -> (OpenRouter id, allowed providers (all fp8, logprobs-capa
     # Clef's own base model, served by Cloudflare (Clef's host): same-base P(yes) readout, reasoning disabled
     "qwen27base-yesno": ("qwen/qwen3.8-27b", ["Cloudflare"], 0.45, 0.0),
     "qwen235-graded": ("qwen/qwen3-235b-a22b-2507", ["GMICloud", "Parasail"], 0.14, 0.0),
+    # prompt-sensitivity paraphrases of the yes/no question (issue #12): same model and providers, USER_PARAPHRASES
+    **{f"qwen235-v{i}-yesno": ("qwen/qwen3-235b-a22b-2507", ["GMICloud", "Parasail"], 0.14, 0.0) for i in (1, 2, 3)},
 }
 NO_REASONING = {"qwen27base-yesno"}  # hybrid-thinking models: answer directly
 SYSTEM = "You are a search relevance assessor."
@@ -34,6 +36,13 @@ USER = ("Query: {q}\nPassage: {p}\n\n"
 GRADED_USER = ("Query: {q}\nPassage: {p}\n\n"
                "From a scale of 0 to 4, judge the relevance between the query and the passage. "
                "Answer with a single digit only.")
+USER_PARAPHRASES = {  # fixed before any paraphrase run (issue #12)
+    "qwen235-v1-yesno": "Query: {q}\nPassage: {p}\n\nIs the passage relevant to the query? Answer with Yes or No only.",
+    "qwen235-v2-yesno": ("Query: {q}\nPassage: {p}\n\nWould the passage be useful to someone who issued this query? "
+                         "Answer with Yes or No only."),
+    "qwen235-v3-yesno": ("Query: {q}\nPassage: {p}\n\nDoes the passage contain the information the query is looking "
+                         "for? Answer with Yes or No only."),
+}
 YES, NO = {"yes", "y"}, {"no", "n"}
 
 
@@ -59,6 +68,8 @@ class LLMYesNoJudge(Judge):
     def __init__(self, alias: str, passage_tokens: int = 448, workers: int = 24):
         self.alias = alias
         self.model, self.providers, self.pin, self.pout = MODELS[alias]
+        if os.environ.get("CHOICERANK_PROVIDERS"):  # e.g. "Parasail" after GMICloud retired Qwen3-235B (2026-10-18)
+            self.providers = os.environ["CHOICERANK_PROVIDERS"].split(",")
         self.passage_tokens = passage_tokens
         self.workers = int(os.environ.get("CHOICERANK_WORKERS", workers))  # some providers rate-limit hard (429)
         self.client = httpx.Client(timeout=60, limits=httpx.Limits(max_connections=64, max_keepalive_connections=32))
@@ -77,7 +88,8 @@ class LLMYesNoJudge(Judge):
                 "provider": {"only": self.providers, "require_parameters": True},
                 **({"reasoning": {"enabled": False}} if self.alias in NO_REASONING else {}),
                 "messages": [{"role": "system", "content": SYSTEM},
-                             {"role": "user", "content": (GRADED_USER if self.alias.endswith("-graded") else USER).format(q=query, p=passage)}]}
+                             {"role": "user", "content": (GRADED_USER if self.alias.endswith("-graded") else
+                                                          USER_PARAPHRASES.get(self.alias, USER)).format(q=query, p=passage)}]}
         rpm = float(os.environ.get("CHOICERANK_RPM", "0"))
         last_err = None
         for attempt in range(16):
@@ -99,6 +111,12 @@ class LLMYesNoJudge(Judge):
             if r.status_code in (408, 500, 502, 503, 504, 520, 521, 522, 523, 524):
                 time.sleep(min(2 ** attempt, 60))
                 continue
+            if r.status_code == 400 and attempt < 4:  # sporadic provider-side 400s; a malformed request fails 5 times
+                last_err = r.text[:500]
+                time.sleep(min(2 ** attempt, 30))
+                continue
+            if r.status_code == 400:
+                raise RuntimeError(f"400 from OpenRouter after retries: {r.text[:500]}")
             r.raise_for_status()
             d = r.json()
             if "choices" not in d:  # provider error returned with HTTP 200 (body holds {"error": ...})

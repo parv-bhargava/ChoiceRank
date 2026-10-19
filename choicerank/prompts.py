@@ -41,6 +41,29 @@ QUESTIONS: dict[str, dict] = {
 }
 
 
+# Prompt-sensitivity paraphrases of the Noul question (issue #12). Fixed before any paraphrase run; same readout as noul.
+PARAPHRASES: dict[str, dict] = {
+    "noul_p1": {
+        "type": "noul",
+        "instructions": "Is the passage relevant to the search query?",
+        "criteria": {"true": "The passage is relevant to the query.",
+                     "false": "The passage is not relevant to the query."},
+    },
+    "noul_p2": {
+        "type": "noul",
+        "instructions": "Would this passage be useful to someone who issued the search query?",
+        "criteria": {"true": "The passage gives information that helps with the query.",
+                     "false": "The passage gives no information that helps with the query."},
+    },
+    "noul_p3": {
+        "type": "noul",
+        "instructions": "Does the passage contain the information the search query is looking for?",
+        "criteria": {"true": "The passage contains the information sought by the query.",
+                     "false": "The passage does not contain the information sought by the query."},
+    },
+}
+
+
 def make_state(query: str, passage: str) -> dict:
     return {"query": query, "passage": passage}
 
@@ -49,7 +72,7 @@ def questions_for(qtype: str) -> dict:
     """`qtype` is one question id or 'all' (all three in one request; input-only cost)."""
     if qtype == "all":
         return dict(QUESTIONS)
-    return {qtype: QUESTIONS[qtype]}
+    return {qtype: QUESTIONS.get(qtype) or PARAPHRASES[qtype]}
 
 
 def readout(qtype: str, answer: dict) -> tuple[float, float]:
@@ -58,7 +81,7 @@ def readout(qtype: str, answer: dict) -> tuple[float, float]:
         p = answer["probabilities"]
         p_rel, p_part = p.get("relevant", 0.0), p.get("partially", 0.0)
         return (2 * p_rel + p_part) / 2 + 1e-6 * p_rel, p_rel
-    if qtype == "noul":
+    if qtype.startswith("noul"):  # noul and its paraphrases
         return answer["noul"], answer["noul"]
     if qtype == "score4":
         p = {int(k): v for k, v in answer["probabilities"].items()}
@@ -75,6 +98,6 @@ def p_lenient(qtype: str, answer: dict) -> float:
     if qtype == "score4":
         p = {int(k): v for k, v in answer["probabilities"].items()}
         return 1.0 - p.get(0, 0.0)
-    if qtype == "noul":
+    if qtype.startswith("noul"):
         return answer["noul"]
     raise ValueError(qtype)

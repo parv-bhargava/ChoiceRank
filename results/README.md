@@ -43,6 +43,7 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 | `truncation.csv` | Share of candidate passages longer than each model's passage budget. |
 | `judged.csv` | Judged@10 and condensed (judged-only) nDCG′@10, to show sensitivity to incomplete pools. |
 | `depth.csv` | nDCG@10, condensed nDCG′@10 and Judged@10 when only the BM25 top-*k* is reranked (k = 10…100, simulated from the same scores). |
+| `prompt_sensitivity.csv` | nDCG@10 and ECE on DL19, DL20 and SciFact under each system's original prompt and three paraphrases fixed in code before running (issue #12). Rows appear for the variants that have been run. |
 
 ## 2. Calibration (RQ2)
 
@@ -124,6 +125,7 @@ python scripts/review_analyses.py        # calib_readouts/transfer/bounds/ci/com
 python scripts/review3_analyses.py       # all r3_*.csv, rag_thrraw.csv
 python scripts/depth_analysis.py         # depth.csv
 python scripts/truncation_stats.py       # truncation.csv
+python scripts/prompt_sensitivity.py     # prompt_sensitivity.csv
 python scripts/rag_eval.py --dataset musique --split final --gen <generator>   # rag_{dataset}_{split}_{generator}.csv
 python scripts/rag_score.py --model qwen3-reranker-8B --dataset musique --split calib final   # local GPU; also -0.6B, nq
 python scripts/rag_generate.py --dataset musique --split final --gen <generator> --rankers qwen3-reranker-8B --i-approve-spend --max-usd 1

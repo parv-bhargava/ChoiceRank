@@ -62,9 +62,14 @@ class Qwen3RerankerJudge(Judge):
               'Instruct provided. Note that the answer can only be "yes" or "no".<|im_end|>\n<|im_start|>user\n')
     SUFFIX = "<|im_end|>\n<|im_start|>assistant\n<think>\n\n</think>\n\n"
     INSTRUCTION = "Given a web search query, retrieve relevant passages that answer the query"
+    INSTRUCTIONS = {  # prompt-sensitivity paraphrases (issue #12), fixed before any paraphrase run
+        "instr1": "Given a search query, judge whether the passage is relevant to it",
+        "instr2": "Given a search query, find passages that would be useful to the person who issued it",
+        "instr3": "Given a search query, retrieve passages that contain the information it asks for",
+    }
 
     def __init__(self, size: str = "0.6B", passage_tokens: int = 448, batch_size: int = 16,
-                 passage_chars: int | None = None, label: str | None = None):
+                 passage_chars: int | None = None, label: str | None = None, instruction: str | None = None):
         # Direct transformers path (sentence-transformers >= 6 rejects the 4B/8B checkpoints' chat template for pairs).
         # A query-document pair is tokenized as a text pair, which for this tokenizer is plain concatenation,
         # exactly as sentence-transformers' CrossEncoder did for the 0.6B runs (verified identical).
@@ -72,6 +77,7 @@ class Qwen3RerankerJudge(Judge):
 
         self.size, self.passage_tokens, self.batch_size = size, passage_tokens, batch_size
         self.passage_chars, self.label = passage_chars, label
+        self.instruction = instruction  # None: the default INSTRUCTION; else a key of INSTRUCTIONS
         name = f"tomaarsen/Qwen3-Reranker-{size}-seq-cls"
         self.tok = AutoTokenizer.from_pretrained(name)
         self.tok.padding_side = "left"
@@ -93,7 +99,9 @@ class Qwen3RerankerJudge(Judge):
 
     @property
     def judge_id(self) -> str:
-        return f"ce:{self.label}" if self.label else f"ce:qwen3-reranker-{self.size}"
+        if self.label:
+            return f"ce:{self.label}"
+        return f"ce:qwen3-reranker-{self.size}" + (f"-{self.instruction}" if self.instruction else "")
 
     def _judge(self, query, passages):
         t0 = time.perf_counter()
@@ -101,7 +109,8 @@ class Qwen3RerankerJudge(Judge):
             passages = [p[: self.passage_chars] for p in passages]
         ids = self.tok(passages, add_special_tokens=False, truncation=True, max_length=self.passage_tokens)["input_ids"]
         docs = [self.tok.decode(x) for x in ids]
-        q = f"{self.PREFIX}<Instruct>: {self.INSTRUCTION}\n<Query>: {query}\n"
+        instruction = self.INSTRUCTIONS[self.instruction] if self.instruction else self.INSTRUCTION
+        q = f"{self.PREFIX}<Instruct>: {instruction}\n<Query>: {query}\n"
         logits = []
         with torch.inference_mode():
             for i in range(0, len(docs), self.batch_size):
