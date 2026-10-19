@@ -1,3 +1,7 @@
 judge,n,neither_pct,only_one_pct
+llm:qwen235-graded,82728,100.0,0.0
+llm:qwen235-v1-yesno,39666,0.0,0.04537891393132658
+llm:qwen235-v2-yesno,39666,0.0,0.02268945696566329
+llm:qwen235-v3-yesno,39666,0.0,0.05042101547925175
 llm:qwen235-yesno,82728,0.0,0.7663668890822938
-llm:qwen27base-yesno,3900,0.0,0.0
+llm:qwen27base-yesno,60700,0.0,0.15485996705107083

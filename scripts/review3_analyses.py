@@ -264,15 +264,22 @@ def musique_mechanism():
         scores[f"jev:{col}"] = jev[["qid", "pid", "orig_rank"]].assign(s=jev[col])
     bge = pd.read_parquet(RUNS_DIR / "rag" / "musique.final.bge-m3.parquet")
     scores["bge-m3"] = bge[["qid", "pid", "orig_rank"]].assign(s=bge.score)
-    judge = Qwen3RerankerJudge("0.6B")
+    judge = None
     order = {it.qid: {p.pid: i for i, p in enumerate(it.passages)} for it in items.values()}
     for name, ins in QWEN_INSTRUCTIONS.items():
+        # GPU scores vary slightly between runs (up to 0.2 points here), so score once and reuse (issue #26)
+        cached = RUNS_DIR / "rag" / f"musique.final.qwen3-reranker-0.6B-mech-{name}.parquet"
+        if cached.exists():
+            scores[f"qwen3rr:{name}"] = pd.read_parquet(cached)
+            continue
+        judge = judge or Qwen3RerankerJudge("0.6B")
         judge.INSTRUCTION = ins
         rows = []
         for q, it in items.items():
             res = judge._judge(it.question, [f"Title: {p.title} Content: {p.text}" for p in it.passages])
             rows += [(q, p.pid, order[q][p.pid], j.score) for p, j in zip(it.passages, res)]
         scores[f"qwen3rr:{name}"] = pd.DataFrame(rows, columns=["qid", "pid", "orig_rank", "s"])
+        scores[f"qwen3rr:{name}"].to_parquet(cached, index=False)
     out = []
     for name, t in scores.items():
         hit = last = first = ans = 0

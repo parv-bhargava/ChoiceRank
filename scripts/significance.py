@@ -41,23 +41,33 @@ def holm(ps):
     return adj
 
 
+# Newer-content checks (reported separately, not in the 13-collection families): unadjusted paired tests (issue #26)
+NEWER = ["futurequery", "noveleval"]
+NEWER_PAIRS = [(f"jev-{q}", other) for other in ("bge-m3", "qwen3-reranker-8B") for q in FORMATS]
+
+
+def tests(a, b, datasets):
+    block = []
+    for ds in datasets:
+        fa, fb = RUNS_DIR / f"{ds}.top100.{a}.trec", RUNS_DIR / f"{ds}.top100.{b}.trec"
+        if not (fa.exists() and fb.exists()):
+            continue  # system not (yet) run on this collection
+        q = load_qrels(ds)
+        A, B = per_query(read_trec(fa), q), per_query(read_trec(fb), q)
+        ks = sorted(set(A) & set(B))
+        d = np.array([A[k] - B[k] for k in ks])
+        p = stats.ttest_rel([A[k] for k in ks], [B[k] for k in ks]).pvalue
+        rng = np.random.default_rng(0)
+        boots = rng.choice(d, (2000, len(d))).mean(axis=1)
+        block.append(dict(A=a, B=b, dataset=ds, n=len(ks), delta=100 * d.mean(),
+                          ci_lo=100 * np.percentile(boots, 2.5), ci_hi=100 * np.percentile(boots, 97.5), p=p))
+    return block
+
+
 def main():
     rows = []
     for a, b in PAIRS:
-        block = []
-        for ds in ALL:
-            fa, fb = RUNS_DIR / f"{ds}.top100.{a}.trec", RUNS_DIR / f"{ds}.top100.{b}.trec"
-            if not (fa.exists() and fb.exists()):
-                continue  # system not (yet) run on this collection
-            q = load_qrels(ds)
-            A, B = per_query(read_trec(fa), q), per_query(read_trec(fb), q)
-            ks = sorted(set(A) & set(B))
-            d = np.array([A[k] - B[k] for k in ks])
-            p = stats.ttest_rel([A[k] for k in ks], [B[k] for k in ks]).pvalue
-            rng = np.random.default_rng(0)
-            boots = rng.choice(d, (2000, len(d))).mean(axis=1)
-            block.append(dict(A=a, B=b, dataset=ds, n=len(ks), delta=100 * d.mean(),
-                              ci_lo=100 * np.percentile(boots, 2.5), ci_hi=100 * np.percentile(boots, 97.5), p=p))
+        block = tests(a, b, ALL)
         if not block:
             continue
         for r, ph in zip(block, holm([r["p"] for r in block])):
@@ -66,6 +76,10 @@ def main():
     df = pd.DataFrame(rows)
     df.to_csv(RESULTS_DIR / "significance.csv", index=False)
     print(df.to_string(index=False, float_format=lambda x: f"{x:.4f}" if abs(x) < 1 else f"{x:.2f}"))
+    newer = pd.DataFrame([r for a, b in NEWER_PAIRS for r in tests(a, b, NEWER)])
+    if not newer.empty:
+        newer.to_csv(RESULTS_DIR / "significance_newer.csv", index=False)
+        print(newer.to_string(index=False, float_format=lambda x: f"{x:.4f}" if abs(x) < 1 else f"{x:.2f}"))
 
 
 if __name__ == "__main__":
