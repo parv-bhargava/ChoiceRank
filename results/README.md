@@ -82,7 +82,7 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 | `rag_{dataset}_final_{generator}_{ranker}.csv` | Issue #4: the nine locked policies for Qwen3-Reranker-8B (4-bit) and -0.6B on the final questions (Platt fit on the same calibration questions). |
 | `rag_final_tests.csv` | Paired tests: (a) Jev vs. bge under each policy (Holm per dataset × generator), (b) threshold rule vs. fixed *k*, (c) Jev vs. Qwen3-Reranker-8B / -0.6B under each policy (Holm per dataset × generator × ranker; added after final results), with 95% CIs, TOST (±2 F1, post-hoc) and a test pooled over generators. |
 | `rag_final_tests_em.csv` | Test (a), Jev vs. bge under each policy, repeated on Exact Match (`delta_EM`, Holm per dataset × generator). EM is a secondary metric. |
-| `rag_final_fd_summary.csv`, `rag_final_fd_tests.csv` | The same summary and tests on the family-disjoint MuSiQue split, plus family-bootstrap 95% CIs (`fam_ci_lo`, `fam_ci_hi`; 20,000 replicates, seed 13). |
+| `rag_final_fd_summary.csv`, `rag_final_fd_tests.csv` | The same summary and tests on the family-disjoint MuSiQue split, plus family-bootstrap 95% CIs (`fam_ci_lo`, `fam_ci_hi`; 20,000 replicates, seed 13). Since issue #26 they include Qwen3-Reranker-8B and 0.6B (test family c, with family-bootstrap CIs); their per-policy files are `rag_musique_final_fd_{generator}_{ranker}.csv`. |
 | `rag_thrraw.csv` | Post-hoc raw-probability thresholds vs. Platt threshold, top-3 and Adaptive-*k*. The raw readout was chosen on labelled calibration questions, so these are not label-free. |
 
 **Generator-free diagnostics:**
