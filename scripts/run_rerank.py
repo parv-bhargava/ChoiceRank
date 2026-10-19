@@ -5,6 +5,7 @@ Examples
   python scripts/run_rerank.py --model minilm --dataset dl19 dl20 scifact
   python scripts/run_rerank.py --model jev --qtype choice3 --dataset core --dry-run
   python scripts/run_rerank.py --model jev --dataset dl19 --limit-queries 1 --i-approve-spend --max-usd 0.05
+  python scripts/run_rerank.py --model jev --qtype all --dataset dl19 scifact --repeat-tag rep2 --dry-run
 
 Paid judges refuse to run without --i-approve-spend, and stop once --max-usd is exceeded.
 """
@@ -60,6 +61,8 @@ def main():
     ap.add_argument("--max-usd", type=float, default=1.0)
     ap.add_argument("--passage-tokens", type=int, default=None,
                     help="equal-budget ablation: truncate every passage to its first N tokens for all models")
+    ap.add_argument("--repeat-tag", default=None,
+                    help="score again under separate cache rows and run files (e.g. rep2), for run-to-run determinism")
     args = ap.parse_args()
 
     names = [n for a in args.dataset for n in GROUPS.get(a, [a])]
@@ -67,7 +70,7 @@ def main():
     if unknown:
         ap.error(f"unknown datasets {unknown}; groups: {sorted(GROUPS)}")
     paid = args.model in PAID
-    label = args.model + (f"-p{args.passage_tokens}" if args.passage_tokens else "")
+    label = args.model + (f"-p{args.passage_tokens}" if args.passage_tokens else "") + (f"-{args.repeat_tag}" if args.repeat_tag else "")
 
     def load(n):
         qs = load_queries(n, args.topk, args.limit_queries)
@@ -92,6 +95,8 @@ def main():
         judge, cache = make_judge(args.model, args.qtype), JudgeCache()
         if args.passage_tokens:
             judge.id_suffix = f"@p{args.passage_tokens}"
+        if args.repeat_tag:
+            judge.id_suffix += f"@{args.repeat_tag}"
 
     spent = 0.0
     for name in names:
