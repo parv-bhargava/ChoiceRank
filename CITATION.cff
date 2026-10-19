@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this code or these results, please cite the paper."
+title: "ChoiceRank: Typed Decision Models as Passage Rerankers"
+type: software
+authors:
+  - family-names: Bhargava
+    given-names: Parv
+license: MIT
+repository-code: "https://github.com/parv-bhargava/ChoiceRank"
+keywords:
+  - information retrieval
+  - reranking
+  - calibration
+  - retrieval-augmented generation
+  - decision models
+preferred-citation:
+  type: article
+  title: "Typed Decision Models as Passage Rerankers: Effectiveness, Calibration, and Context Selection"
+  authors:
+    - family-names: Bhargava
+      given-names: Parv
+  year: 2026
+  notes: "Preprint, forthcoming"
