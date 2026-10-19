@@ -34,8 +34,9 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 
 | File | Contents |
 |---|---|
-| `ranking.csv` | nDCG@10, MRR@10, R@20 for every system × collection (main ranking table). |
+| `ranking.csv` | nDCG@10, MRR@10, R@20 for every run in `runs/` (system × collection), including auxiliary runs that have their own summary files (prompt paraphrases, the determinism repeat, SPLADE++ candidates) and the newer-content checks. The paper tables select the rows they use. |
 | `significance.csv` | Paired *t*-tests over queries between system pairs per collection: mean difference `delta`, bootstrap 95% CI, `p`, and `p_holm` (Holm correction across the collections of each pair). |
+| `significance_newer.csv` | Same paired tests, unadjusted, for Jev vs. bge and vs. Qwen3-Reranker-8B on FutureQueryEval and NovelEval, which are reported separately from the 13 collections (issue #26). |
 | `r3_meta.csv` | DerSimonian–Laird random-effects pooled difference over collections, with and without Robust04 (normal 95% CI, τ, I²). |
 | `r3_meta_sensitivity.csv` | Same comparisons with normal vs. modified Knapp–Hartung (mKH) intervals, 90%/95% CIs and post-hoc TOST at ±2 nDCG (`equivalent`). |
 | `r3_equiv.csv` | TOST equivalence (±2 nDCG, post-hoc margin) for the "on par" claims (normal inference). |
@@ -44,7 +45,7 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 | `judged.csv` | Judged@10 and condensed (judged-only) nDCG′@10, to show sensitivity to incomplete pools. |
 | `depth.csv` | nDCG@10, condensed nDCG′@10 and Judged@10 when only the BM25 top-*k* is reranked (k = 10…100, simulated from the same scores). |
 | `prompt_sensitivity.csv` | nDCG@10 and ECE on DL19, DL20 and SciFact under each system's original prompt and three paraphrases fixed in code before running (issue #12). Rows appear for the variants that have been run. |
-| `first_stage.csv` | Neural first-stage check (issue #13): nDCG@10 on DL19/20 when reranking the BM25 vs. the SPLADE++ EnsembleDistil top-100, with paired differences to bge on the same candidates. |
+| `first_stage.csv` | Neural first-stage check (issue #13): nDCG@10 on DL19/20 when reranking the BM25 vs. the SPLADE++ EnsembleDistil top-100, with paired differences to bge on the same candidates. Issue #26 adds `judged10` (share of the top 10 with a relevance judgment) and condensed-list nDCG@10 (unjudged candidates removed) with its own paired test against bge. |
 
 ## 2. Calibration (RQ2)
 
@@ -81,7 +82,7 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 | `rag_{dataset}_final_{generator}_{ranker}.csv` | Issue #4: the nine locked policies for Qwen3-Reranker-8B (4-bit) and -0.6B on the final questions (Platt fit on the same calibration questions). |
 | `rag_final_tests.csv` | Paired tests: (a) Jev vs. bge under each policy (Holm per dataset × generator), (b) threshold rule vs. fixed *k*, (c) Jev vs. Qwen3-Reranker-8B / -0.6B under each policy (Holm per dataset × generator × ranker; added after final results), with 95% CIs, TOST (±2 F1, post-hoc) and a test pooled over generators. |
 | `rag_final_tests_em.csv` | Test (a), Jev vs. bge under each policy, repeated on Exact Match (`delta_EM`, Holm per dataset × generator). EM is a secondary metric. |
-| `rag_final_fd_summary.csv`, `rag_final_fd_tests.csv` | The same summary and tests on the family-disjoint MuSiQue split, plus family-bootstrap 95% CIs (`fam_ci_lo`, `fam_ci_hi`; 20,000 replicates, seed 13). |
+| `rag_final_fd_summary.csv`, `rag_final_fd_tests.csv` | The same summary and tests on the family-disjoint MuSiQue split, plus family-bootstrap 95% CIs (`fam_ci_lo`, `fam_ci_hi`; 20,000 replicates, seed 13). Since issue #26 they include Qwen3-Reranker-8B and 0.6B (test family c, with family-bootstrap CIs); their per-policy files are `rag_musique_final_fd_{generator}_{ranker}.csv`. |
 | `rag_thrraw.csv` | Post-hoc raw-probability thresholds vs. Platt threshold, top-3 and Adaptive-*k*. The raw readout was chosen on labelled calibration questions, so these are not label-free. |
 
 **Generator-free diagnostics:**
@@ -91,7 +92,8 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 | `rag_selection.csv` | Gold-passage recall@k and all-gold@k per ranker. |
 | `rag_hit1.csv` | MuSiQue: top-1 is any supporting paragraph (hit@1) / the last hop (last_hop@1), with exact McNemar tests. |
 | `rag_hops.csv` | MuSiQue: top-1 is the first hop / last hop / contains the answer string. |
-| `r3_musique_mechanism.csv` | Same diagnostics for every Jev readout and for Qwen3-Reranker-0.6B under three instructions. |
+| `rag_hop_f1.csv` | Original MuSiQue final split by hop count (2/3/4, from the question ID): F1 of Jev, bge and Qwen3-Reranker-8B per generator and policy, with Jev-minus-other paired differences and unadjusted question-level 95% intervals (issue #26). |
+| `r3_musique_mechanism.csv` | Same diagnostics for every Jev readout and for Qwen3-Reranker-0.6B under three instructions. The Qwen scores are computed on the GPU once and cached in `runs/rag/musique.final.qwen3-reranker-0.6B-mech-*.parquet`, because rescoring moves them by up to 0.2 points. |
 | `r3_musique_masked.csv` | Same diagnostics with gold-answer strings replaced by `[MASKED]`. Descriptive only: the marker itself reveals where the answer occurred. |
 
 **MuSiQue split-overlap audit and clean-subset sensitivity.** Question IDs are disjoint across the calibration, pilot and final splits, but MuSiQue questions share sub-questions.
@@ -121,13 +123,14 @@ Run from the repository root, after the run scripts have filled `runs/` (see the
 
 ```bash
 python scripts/eval_all.py               # ranking.csv, calibration.csv
-python scripts/significance.py           # significance.csv
+python scripts/significance.py           # significance.csv, significance_newer.csv
 python scripts/review_analyses.py        # calib_readouts/transfer/bounds/ci/common7/transfer_nodl, judged, rag_selection, rag_hops, rag_hit1
 python scripts/review3_analyses.py       # all r3_*.csv, rag_thrraw.csv
 python scripts/depth_analysis.py         # depth.csv
 python scripts/truncation_stats.py       # truncation.csv
 python scripts/prompt_sensitivity.py     # prompt_sensitivity.csv
 python scripts/first_stage.py            # first_stage.csv
+python scripts/rag_hop_f1.py             # rag_hop_f1.csv
 python scripts/rag_eval.py --dataset musique --split final --gen <generator>   # rag_{dataset}_{split}_{generator}.csv
 python scripts/rag_score.py --model qwen3-reranker-8B --dataset musique --split calib final   # local GPU; also -0.6B, nq
 python scripts/rag_generate.py --dataset musique --split final --gen <generator> --rankers qwen3-reranker-8B --i-approve-spend --max-usd 1

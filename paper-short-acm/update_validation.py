@@ -27,7 +27,10 @@ HASHED = {
 
 
 def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    data = path.read_bytes()
+    if path.suffix != ".pdf":  # hash text as committed (LF), so Windows CRLF checkouts give the same value
+        data = data.replace(b"\r\n", b"\n")
+    return hashlib.sha256(data).hexdigest()
 
 
 def main():

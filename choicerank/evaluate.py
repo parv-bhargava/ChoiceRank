@@ -14,7 +14,8 @@ def rank_metrics(run: dict[str, dict[str, float]], qrels: dict[str, dict[str, in
     measures = [nDCG @ 10, MRR(rel=rel_threshold) @ 10, R(rel=rel_threshold) @ 20]
     agg = ir_measures.calc_aggregate(measures, qrels, run)
     names = dict(zip(measures, ["nDCG@10", "MRR@10", "R@20"]))
-    return {names[m]: 100 * v for m, v in agg.items()}
+    # fixed column order: calc_aggregate's dict order varies between runs, which reordered ranking.csv (issue #26)
+    return {names[m]: 100 * agg[m] for m in reversed(measures)}
 
 
 def per_query(run, qrels, measure=nDCG @ 10) -> dict[str, float]:
