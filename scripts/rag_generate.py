@@ -51,10 +51,10 @@ TS_POST, FLOORS, TS_FLOOR = [0.1, 0.2], [1, 2], [0.1, 0.3, 0.5]
 
 # ------------------------------------------------------------------------- scores + calibration
 
-def ranker_tables(dataset: str, split: str, stand_in: bool = False) -> dict[str, pd.DataFrame]:
+def ranker_tables(dataset: str, split: str, stand_in: bool = False, rankers=RANKERS) -> dict[str, pd.DataFrame]:
     """Per ranker: qid, pid, rank_score, p_raw, p_platt (Platt fit on calib split, with gold labels)."""
     out = {}
-    for r in RANKERS:
+    for r in rankers:
         src = r
         if not (OUT / f"{dataset}.{split}.{r}.parquet").exists():
             if not stand_in:
@@ -86,10 +86,25 @@ FINAL_POLICIES = {"none", "all", "gold"} | {
 # Post-hoc addendum (2026-10-04, final results already seen): raw-probability
 # thresholds with a readout selected using labelled calibration questions.
 FINAL_POLICIES |= {"jev:thrRaw0.3", "jev:thrRaw0.5", "jev:thrRaw0.7"}
+LOCKED = ["top1", "top2", "top3", "top5", "adaptive", "floor2+thr0.3", "floor2+thr0.5", "thrPlatt0.2", "thrPlatt0.3"]
+
+
+def final_policies(rankers=RANKERS) -> set[str]:
+    """Final-split policy grid. Additional rankers (issue #4, e.g. qwen3-reranker-8B) get the nine locked policies
+    and are generated into their own file, so the original jev/bge grid and its files stay unchanged."""
+    if list(rankers) == RANKERS:
+        return FINAL_POLICIES
+    return {f"{r}:{p}" for r in rankers for p in LOCKED}
+
+
+def gen_path(dataset: str, split: str, gen: str, rankers=RANKERS, kind: str = "gen"):
+    """runs/rag/{dataset}.{split}.{kind}.{slug}[.{rankers}].parquet; kind is 'gen' or 'per_q'."""
+    extra = "" if list(rankers) == RANKERS else "." + "+".join(rankers)
+    return OUT / f"{dataset}.{split}.{kind}.{gen.replace('/', '_')}{extra}.parquet"
 
 
 def policies(item, tables) -> dict[str, list[str]]:
-    pol = {"none": [], "gold": [p.pid for p in item.passages if p.gold]}
+    pol = {"none": [], "gold": [p.pid for p in item.passages if p.gold]}  # dropped on final by final_policies()
     for r, t in tables.items():
         d = t[t.qid == item.qid].sort_values(["rank_score", "orig_rank"], ascending=[False, True])
         ranked = list(d.pid)
@@ -176,15 +191,18 @@ def main():
     ap.add_argument("--i-approve-spend", action="store_true")
     ap.add_argument("--max-usd", type=float, default=0.5)
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--rankers", nargs="+", default=RANKERS,
+                    help="default jev bge-m3; other rankers (e.g. qwen3-reranker-8B) are written to their own file")
     args = ap.parse_args()
 
     items = load_split(args.dataset, args.split)
-    tables = ranker_tables(args.dataset, args.split, stand_in=args.dry_run)
+    tables = ranker_tables(args.dataset, args.split, stand_in=args.dry_run, rankers=args.rankers)
+    grid = final_policies(args.rankers)
     cache = GenCache()
     plan, prompts = [], {}
     for it in items:
         for name, pids in policies(it, tables).items():
-            if args.split.startswith("final") and name not in FINAL_POLICIES:
+            if args.split.startswith("final") and name not in grid:
                 continue
             pr = build_prompt(it, pids)
             k = GenCache.key(args.gen, pr)
@@ -222,8 +240,7 @@ def main():
         res = cache.get(row["key"])
         if res:
             rows.append({**row, **res})
-    slug = args.gen.replace("/", "_")
-    pd.DataFrame(rows).to_parquet(OUT / f"{args.dataset}.{args.split}.gen.{slug}.parquet", index=False)
+    pd.DataFrame(rows).to_parquet(gen_path(args.dataset, args.split, args.gen, args.rankers), index=False)
     print(f"wrote {len(rows)} rows; spend this run ${spent[0]:.4f}")
 
 

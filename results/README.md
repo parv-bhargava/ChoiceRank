@@ -76,7 +76,8 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 |---|---|
 | `rag_{dataset}_{split}_{generator}.csv` | Per selection policy: EM, F1, accuracy, mean passages `n`, generator input `tokens`, share of empty selections, selection precision/recall, all-gold rate. `pilot` files are the design runs; `final` files are the 1,000 held-out questions; `final_fd` files are the 597 family-disjoint MuSiQue questions (primary MuSiQue result, issue #3). NQ files add EM/empty on questions without a gold passage. |
 | `rag_final_summary.csv` | All final runs in one table (dataset × generator × policy). |
-| `rag_final_tests.csv` | Paired tests: (a) Jev vs. bge under each policy (Holm per dataset × generator), (b) threshold rule vs. fixed *k*, with 95% CIs, TOST (±2 F1, post-hoc) and a test pooled over generators. |
+| `rag_{dataset}_final_{generator}_{ranker}.csv` | Issue #4: the nine locked policies for Qwen3-Reranker-8B (4-bit) and -0.6B on the final questions (Platt fit on the same calibration questions). |
+| `rag_final_tests.csv` | Paired tests: (a) Jev vs. bge under each policy (Holm per dataset × generator), (b) threshold rule vs. fixed *k*, (c) Jev vs. Qwen3-Reranker-8B / -0.6B under each policy (Holm per dataset × generator × ranker; added after final results), with 95% CIs, TOST (±2 F1, post-hoc) and a test pooled over generators. |
 | `rag_final_tests_em.csv` | Test (a), Jev vs. bge under each policy, repeated on Exact Match (`delta_EM`, Holm per dataset × generator). EM is a secondary metric. |
 | `rag_final_fd_summary.csv`, `rag_final_fd_tests.csv` | The same summary and tests on the family-disjoint MuSiQue split, plus family-bootstrap 95% CIs (`fam_ci_lo`, `fam_ci_hi`; 20,000 replicates, seed 13). |
 | `rag_thrraw.csv` | Post-hoc raw-probability thresholds vs. Platt threshold, top-3 and Adaptive-*k*. The raw readout was chosen on labelled calibration questions, so these are not label-free. |
@@ -124,6 +125,9 @@ python scripts/review3_analyses.py       # all r3_*.csv, rag_thrraw.csv
 python scripts/depth_analysis.py         # depth.csv
 python scripts/truncation_stats.py       # truncation.csv
 python scripts/rag_eval.py --dataset musique --split final --gen <generator>   # rag_{dataset}_{split}_{generator}.csv
+python scripts/rag_score.py --model qwen3-reranker-8B --dataset musique --split calib final   # local GPU; also -0.6B, nq
+python scripts/rag_generate.py --dataset musique --split final --gen <generator> --rankers qwen3-reranker-8B --i-approve-spend --max-usd 1
+python scripts/rag_eval.py --dataset musique --split final --gen <generator> --rankers qwen3-reranker-8B   # rag_{dataset}_final_{generator}_{ranker}.csv
 python scripts/rag_summary.py            # rag_final_summary.csv, rag_final_tests.csv, rag_final_tests_em.csv
 python scripts/rag_summary.py --split final_fd   # rag_final_fd_summary.csv, rag_final_fd_tests.csv, paper/tables/rag-fd.tex
 python scripts/audit_musique_split_overlap.py   # musique_split_overlap_audit.*

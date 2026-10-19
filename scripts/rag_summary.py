@@ -70,24 +70,55 @@ def paired(x, y, meta):
             "p": stats.ttest_rel(x, y).pvalue, "p_tost": max(p_lo, p_hi)}
 
 
-def per_question(ds, gen, split="final"):
-    """Validate source completeness and rebuild stale or unverified per-question scores."""
+def per_question(ds, gen, split="final", rankers=None):
+    """Validate source completeness and rebuild stale or unverified per-question scores.
+    rankers: None for the original jev/bge grid, or e.g. ['qwen3-reranker-8B'] for an additional ranker (issue #4)."""
     from scripts.rag_eval import file_hash, validate_grid
-    from scripts.rag_generate import FINAL_POLICIES
+    from scripts.rag_generate import RANKERS, final_policies, gen_path
     from choicerank.rag import load_split
 
-    slug = gen.replace("/", "_")
-    p = RUNS_DIR / "rag" / f"{ds}.{split}.per_q.{slug}.parquet"
-    source = RUNS_DIR / "rag" / f"{ds}.{split}.gen.{slug}.parquet"
-    validate_grid(pd.read_parquet(source), [it.qid for it in load_split(ds, split)], FINAL_POLICIES)
+    rankers = rankers or RANKERS
+    p = gen_path(ds, split, gen, rankers, kind="per_q")
+    source = gen_path(ds, split, gen, rankers)
+    validate_grid(pd.read_parquet(source), [it.qid for it in load_split(ds, split)], final_policies(rankers))
     metadata = p.with_suffix(".metadata.json")
     provenance = json.loads(metadata.read_text(encoding="utf-8")) if metadata.exists() else {}
     if not p.exists() or not provenance.get("complete_grid") or provenance.get("generation_sha256") != file_hash(source):
         import subprocess
 
-        subprocess.run([sys.executable, "scripts/rag_eval.py", "--dataset", ds, "--split", split, "--gen", gen],
+        extra = [] if rankers == RANKERS else ["--rankers", *rankers]
+        subprocess.run([sys.executable, "scripts/rag_eval.py", "--dataset", ds, "--split", split, "--gen", gen, *extra],
                        cwd=ROOT, check=True, capture_output=True)
     return pd.read_parquet(p)
+
+
+EXTRA_RANKERS = ["qwen3-reranker-8B", "qwen3-reranker-0.6B"]  # issue #4: downstream comparison with Qwen rerankers
+
+
+def extra_ranker_tests(ds, gen, wide_jev, split="final"):
+    """Summary rows and family (c) tests, Jev vs each additional ranker under the nine locked policies (Holm per
+    dataset x generator x ranker), for the rankers whose generations on this split exist."""
+    from scripts.rag_generate import gen_path
+
+    summary, tests = [], []
+    for rk in EXTRA_RANKERS:
+        if not gen_path(ds, split, gen, [rk]).exists():
+            continue
+        per = per_question(ds, gen, split, [rk])
+        agg = per.groupby("policy").agg(F1=("F1", "mean"), EM=("EM", "mean"), n=("n", "mean"),
+                                        tokens=("tokens", "mean"), empty=("empty", "mean"))
+        for pol, r in agg.iterrows():
+            summary.append(dict(dataset=ds, gen=GENS[gen], policy=pol, F1=100 * r["F1"], EM=100 * r["EM"],
+                                n=r["n"], tokens=r["tokens"], empty=100 * r["empty"]))
+        wide = per.pivot(index="qid", columns="policy", values="F1")
+        rows = [paired(wide_jev[f"jev:{p}"], wide[f"{rk}:{p}"],
+                       dict(dataset=ds, gen=GENS[gen], comparison=f"c: jev vs {rk}", A=f"jev:{p}", B=f"{rk}:{p}",
+                            design="added_after_final_results", equivalence_design="posthoc_margin_uncorrected"))
+                for p in SHARED]
+        for r, ph in zip(rows, holm([r["p"] for r in rows])):
+            r["p_holm"] = ph
+        tests += rows
+    return summary, tests
 
 
 def main(split="final"):
@@ -133,6 +164,13 @@ def main(split="final"):
                     for r in rows:
                         r["fam_ci_lo"], r["fam_ci_hi"] = family_ci(wide[r["A"]] - wide[r["B"]], fam)
                 tests += rows
+            s_x, t_x = extra_ranker_tests(ds, gen, wide, split)
+            if fam is not None:
+                for r in t_x:
+                    r["fam_ci_lo"], r["fam_ci_hi"] = family_ci(wide[r["A"]] - per_question(
+                        ds, gen, split, [r["B"].split(":")[0]]).pivot(index="qid", columns="policy", values="F1")[r["B"]], fam)
+            summary += s_x
+            tests += t_x
     # (b) pooled over generators: per-question mean F1 across the 3 generators
     for ds in datasets:
         ws = [w for (d, g), w in wide_by.items() if d == ds]
@@ -171,13 +209,20 @@ def write_latex(S, T, split="final", metric="F1"):
             ("jev:floor2+thr0.3", r"\quad top-2 $+$ $P>0.3$"),
             (None, "bge-reranker-v2-m3"), ("bge-m3:top1", r"\quad top-1"), ("bge-m3:top3", r"\quad top-3"),
             ("bge-m3:adaptive", r"\quad adaptive-$k$"), ("bge-m3:floor2+thr0.3", r"\quad top-2 $+$ $P>0.3$")]
+    for rk, name in [("qwen3-reranker-8B", "Qwen3-Reranker-8B (4-bit)"), ("qwen3-reranker-0.6B", "Qwen3-Reranker-0.6B")]:
+        if (S.policy == f"{rk}:top1").any():  # issue #4: shown once its final generations exist
+            rows += [(None, name), (f"{rk}:top1", r"\quad top-1"), (f"{rk}:top3", r"\quad top-3"),
+                     (f"{rk}:adaptive", r"\quad adaptive-$k$"), (f"{rk}:floor2+thr0.3", r"\quad top-2 $+$ $P>0.3$")]
     cols = [(d, g) for d in DS for g in GENS.values() if ((S.dataset == d) & (S.gen == g)).any()]
     dsets = [d for d in DS if (S.dataset == d).any()]  # final_fd is MuSiQue only
     sig = T[T.comparison.str.startswith("a")].set_index(["dataset", "gen", "A"])
+    sig8 = T[T.comparison == "c: jev vs qwen3-reranker-8B"].set_index(["dataset", "gen", "A"])  # issue #4
+    dd = (r"$^\ddagger$: Jev significantly better than Qwen3-Reranker-8B under the same policy (same test and correction, "
+          r"added after final results). ") if len(sig8) else ""
     caption = (r"\caption{RQ3: answer F1 on the original 1{,}000 ID-disjoint final questions per dataset; MuSiQue component families overlap design splits. "
            r"Avg.\ $n$: mean number of selected passages (independent of generator). $^\dagger$: Jev significantly better than "
            r"bge-reranker-v2-m3 under the same policy in the original question-level paired $t$-test (Holm-corrected, $p<0.05$); these tests do not account for family dependence. "
-           r"Displayed policies and ranker-effect comparisons were fixed after separate pilot questions. "
+           + dd + r"Displayed policies and ranker-effect comparisons were fixed after separate pilot questions. "
            r"Thresholds use a readout selected with labelled calibration questions; the $P>0.3$ rows are Platt-scaled.}")
     label, name = r"\label{tab:rag}", "rag.tex"
     if metric == "EM":
@@ -192,7 +237,7 @@ def write_latex(S, T, split="final", metric="F1"):
                    r"thresholds are those locked after the original pilot; Platt scaling and Jev's readout are refit on "
                    r"the family-disjoint calibration split. $^\dagger$: Jev significantly better than bge-reranker-v2-m3 "
                    r"under the same policy (question-level paired $t$-test, Holm-corrected, $p<0.05$). Family-bootstrap "
-                   r"intervals are given in the text.}")
+                   r"intervals are given in the text." + (" " + dd.rstrip() if dd else "") + "}")
         label, name = r"\label{tab:rag-fd}", "rag-fd.tex"
     out = [r"\begin{table*}[t]", r"\centering", r"\footnotesize", r"\setlength{\tabcolsep}{4pt}", caption, label,
            r"\begin{tabular}{l" + "r" * (len(cols) + len(dsets)) + "}", r"\toprule",
@@ -211,6 +256,8 @@ def write_latex(S, T, split="final", metric="F1"):
             txt = f"{v.iloc[0]:.1f}" if len(v) else "--"
             if (d, g, key) in sig.index and sig.loc[(d, g, key)].p_holm < 0.05 and sig.loc[(d, g, key)].delta_F1 > 0:
                 txt += r"$^\dagger$"
+            if (d, g, key) in sig8.index and sig8.loc[(d, g, key)].p_holm < 0.05 and sig8.loc[(d, g, key)].delta_F1 > 0:
+                txt += r"$^\ddagger$"
             cells.append(txt)
         ns = []
         for d in dsets:
