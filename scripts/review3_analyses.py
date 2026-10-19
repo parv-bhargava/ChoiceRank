@@ -191,7 +191,9 @@ def meta():
     pairs = [("jev-score4", "bge-m3"), ("jev-score4", "qwen3-reranker-0.6B"), ("jev-score4", "minilm"),
              ("jev-noul", "bge-m3"), ("jev-choice3", "bge-m3"), ("clef-score4", "bge-m3"), ("jev-score4", "clef-score4"),
              ("jev-score4", "qwen3-reranker-8B"), ("jev-score4", "qwen3-reranker-4B"), ("qwen3-reranker-8B", "bge-m3"),
-             ("qwen235-graded", "qwen235-yesno")]
+             ("qwen235-graded", "qwen235-yesno"),
+             # issue #5: Qwen8B reading the same first 4,000 characters as Jev (rows appear once the runs exist)
+             ("jev-score4", "qwen3-reranker-8B-4k"), ("qwen3-reranker-8B-4k", "qwen3-reranker-8B")]
     for a, b in pairs:
         for label, dsets in [("all", ALL), ("no_robust04", [d for d in ALL if d != "robust04"])]:
             t = _deltas(a, b, dsets)
@@ -210,7 +212,9 @@ def meta():
 def eqctx():
     out = []
     for fmt in ("choice3", "noul", "score4"):
-        for a, b in [(f"jev-p448-{fmt}", "bge-m3-p448"), (f"jev-{fmt}", "bge-m3"), (f"jev-p448-{fmt}", "bge-m3-2048")]:
+        for a, b in [(f"jev-p448-{fmt}", "bge-m3-p448"), (f"jev-{fmt}", "bge-m3"), (f"jev-p448-{fmt}", "bge-m3-2048"),
+                     # issue #5: equal context against Qwen3-Reranker-8B (skipped until the runs exist)
+                     (f"jev-{fmt}", "qwen3-reranker-8B-4k"), (f"jev-p448-{fmt}", "qwen3-reranker-8B")]:
             t = _deltas(a, b, ["touche", "news", "robust04"])
             if t.empty:
                 continue
@@ -333,6 +337,11 @@ def sensitivity():
                for fmt in ("score4", "noul", "choice3") for base in ("bge-m3", "minilm")]
     claims += [(f"jev-{fmt}", f"clef-{fmt}", "Clef-7", DL + ["trec-covid", "robust04"])
                for fmt in ("choice3", "noul", "score4")]
+    # issue #5 (B10): Jev vs Qwen8B without Robust04, and at equal context once the 4,000-character runs exist
+    claims += [("jev-score4", "qwen3-reranker-8B", "Without Robust04", [d for d in ALL if d != "robust04"])]
+    if len(_deltas("jev-score4", "qwen3-reranker-8B-4k", ALL)) == len(ALL):
+        claims += [("jev-score4", "qwen3-reranker-8B-4k", "All-13", ALL),
+                   ("jev-score4", "qwen3-reranker-8B-4k", "Without Robust04", [d for d in ALL if d != "robust04"])]
     rows = []
     for a, b, label, datasets in claims:
         effects = _deltas(a, b, datasets)
@@ -353,7 +362,14 @@ def sensitivity():
              r"Comparison & $k$ & Pooled difference & Normal CI & mKH CI \\", r"\midrule"]
     labels = [r"Jev S4 -- bge, all (95\%)", r"Jev S4 -- bge, no Robust04 (95\%)",
               r"Jev S4 -- Qwen8B, all (90\%)", r"Clef S4 -- base, three collections (90\%)"]
-    for (a, b, label, _), display, level in zip(claims[:4], labels, (95, 95, 90, 90)):
+    shown = list(zip(claims[:4], labels, (95, 95, 90, 90)))
+    for claim in claims[4:]:
+        if claim[:3] == ("jev-score4", "qwen3-reranker-8B", "Without Robust04"):
+            shown.append((claim, r"Jev S4 -- Qwen8B, no Robust04 (90\%)", 90))
+        elif claim[1] == "qwen3-reranker-8B-4k":
+            shown.append((claim, r"Jev S4 -- Qwen8B at 4k chars, " + ("all" if claim[2] == "All-13" else "no Robust04")
+                          + r" (90\%)", 90))
+    for (a, b, label, _), display, level in shown:
         pair = out[(out.A == a) & (out.B == b) & (out.collections == label)].set_index("method")
         normal, robust = pair.loc["normal"], pair.loc["mKH"]
         intervals = [f"[{r[f'ci{level}_lo']:.2f}, {r[f'ci{level}_hi']:.2f}]" for r in (normal, robust)]

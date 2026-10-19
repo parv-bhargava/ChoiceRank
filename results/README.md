@@ -39,7 +39,7 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 | `r3_meta.csv` | DerSimonian–Laird random-effects pooled difference over collections, with and without Robust04 (normal 95% CI, τ, I²). |
 | `r3_meta_sensitivity.csv` | Same comparisons with normal vs. modified Knapp–Hartung (mKH) intervals, 90%/95% CIs and post-hoc TOST at ±2 nDCG (`equivalent`). |
 | `r3_equiv.csv` | TOST equivalence (±2 nDCG, post-hoc margin) for the "on par" claims (normal inference). |
-| `r3_eqctx.csv` | Equal-context ablation: Jev vs. bge at 448 tokens and vs. bge-2048 on Touche, News, Robust04. |
+| `r3_eqctx.csv` | Equal-context ablation: Jev vs. bge at 448 tokens and vs. bge-2048 on Touche, News, Robust04; Jev (448) vs. Qwen3-Reranker-8B (448 tokens); Jev vs. `qwen3-reranker-8B-4k` (both read the first 4,000 characters). |
 | `truncation.csv` | Share of candidate passages longer than each model's passage budget. |
 | `judged.csv` | Judged@10 and condensed (judged-only) nDCG′@10, to show sensitivity to incomplete pools. |
 | `depth.csv` | nDCG@10, condensed nDCG′@10 and Judged@10 when only the BM25 top-*k* is reranked (k = 10…100, simulated from the same scores). |

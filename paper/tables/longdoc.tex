@@ -2,7 +2,7 @@
 \centering
 \small
 \setlength{\tabcolsep}{3pt}
-\caption{Long-document collections. Top: share of candidate passages longer than each model's passage budget (XLM-R tokens; Laya English $\approx$320, cross-encoders 448 at a 512 window, bge at 2{,}048 tokens, Jev/Jeff 4{,}000 characters). Bottom: nDCG@10 with each model's own window and with every passage cut to the same first 448 tokens (``=448''). $\Delta$: Jev Score-4 minus bge at equal budget (paired $t$-test).}
+\caption{Long-document collections. Top: share of candidate passages longer than each model's passage budget (XLM-R tokens; Laya English $\approx$320, cross-encoders 448 at a 512 window, bge at 2{,}048 tokens, Jev/Jeff 4{,}000 characters). Bottom: nDCG@10 with each model's own window and with every passage cut to the same first 448 tokens (``=448''). Qwen8B (4k chars) reads the same first 4{,}000 characters as Jev. $\Delta$: Jev Score-4 minus bge or Qwen8B at equal budget (paired $t$-test; $^{*}$: $p<0.05$).}
 \label{tab:longdoc}
 \begin{tabular}{lrrr}
 \toprule
@@ -23,8 +23,11 @@
 \quad bge (2{,}048) & 37.5 & 47.8 & 51.6 \\
 \quad Jev S4 (4k chars) & 31.6 & 48.6 & 65.9 \\
 \quad Jev S4 (=448) & 28.2 & 49.4 & 63.1 \\
+\quad Qwen8B (448) & 36.2 & 51.6 & 58.0 \\
+\quad Qwen8B (4k chars) & 38.7 & 53.2 & 60.5 \\
 \midrule
 $\Delta$ Jev$-$bge (=448) & -9.9$^{*}$ & +4.9$^{*}$ & +11.5$^{*}$ \\
+$\Delta$ Jev$-$Qwen8B (4k chars) & -7.0$^{*}$ & -4.6$^{*}$ & +5.3$^{*}$ \\
 \bottomrule
 \end{tabular}
 \end{table}

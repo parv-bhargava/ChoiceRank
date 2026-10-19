@@ -197,7 +197,8 @@ def longdoc_table(rank: pd.DataFrame, trunc: pd.DataFrame) -> str:
              r"\caption{Long-document collections. Top: share of candidate passages longer than each model's passage budget "
              r"(XLM-R tokens; Laya English $\approx$320, cross-encoders 448 at a 512 window, bge at 2{,}048 tokens, Jev/Jeff 4{,}000 characters). "
              r"Bottom: nDCG@10 with each model's own window and with every passage cut to the same first 448 tokens (``=448''). "
-             r"$\Delta$: Jev Score-4 minus bge at equal budget (paired $t$-test).}",
+             r"Qwen8B (4k chars) reads the same first 4{,}000 characters as Jev. "
+             r"$\Delta$: Jev Score-4 minus bge or Qwen8B at equal budget (paired $t$-test; $^{*}$: $p<0.05$).}",
              r"\label{tab:longdoc}",
              r"\begin{tabular}{lrrr}", r"\toprule", r" & Touche & News & Robust04 \\", r"\midrule",
              r"\multicolumn{4}{l}{\textit{Passages truncated (\%)}} \\"]
@@ -207,19 +208,27 @@ def longdoc_table(rank: pd.DataFrame, trunc: pd.DataFrame) -> str:
     lines += [r"\midrule", r"\multicolumn{4}{l}{\textit{nDCG@10}} \\"]
     for s, lab in [("bm25", r"\quad BM25"), ("minilm", r"\quad MiniLM (512)"), ("minilm-p448", r"\quad MiniLM (=448)"),
                    ("bge-m3", r"\quad bge (512)"), ("bge-m3-p448", r"\quad bge (=448)"), ("bge-m3-2048", r"\quad bge (2{,}048)"),
-                   ("jev-score4", r"\quad Jev S4 (4k chars)"), ("jev-p448-score4", r"\quad Jev S4 (=448)")]:
+                   ("jev-score4", r"\quad Jev S4 (4k chars)"), ("jev-p448-score4", r"\quad Jev S4 (=448)"),
+                   ("qwen3-reranker-8B", r"\quad Qwen8B (448)"), ("qwen3-reranker-8B-4k", r"\quad Qwen8B (4k chars)")]:
+        if s.startswith("qwen3-reranker-8B") and all(get(s, d) == "--" for d in LONG):
+            continue  # issue #5: Qwen8B rows appear once its runs exist on these collections
         lines.append(lab + " & " + " & ".join(get(s, d) for d in LONG) + r" \\")
-    deltas = []
-    for d in LONG:
-        q = load_qrels(d)
-        J = per_query(read_trec(RUNS_DIR / f"{d}.top100.jev-p448-score4.trec"), q)
-        B = per_query(read_trec(RUNS_DIR / f"{d}.top100.bge-m3-p448.trec"), q)
-        ks = sorted(set(J) & set(B))
-        diff = 100 * np.mean([J[k] - B[k] for k in ks])
-        pv = stats.ttest_rel([J[k] for k in ks], [B[k] for k in ks]).pvalue
-        deltas.append(f"{diff:+.1f}" + ("$^{*}$" if pv < 0.05 else ""))
-    lines += [r"\midrule", r"$\Delta$ Jev$-$bge (=448) & " + " & ".join(deltas) + r" \\",
-              r"\bottomrule", r"\end{tabular}", r"\end{table}"]
+    def deltas(a, b):
+        out = []
+        for d in LONG:
+            q = load_qrels(d)
+            J = per_query(read_trec(RUNS_DIR / f"{d}.top100.{a}.trec"), q)
+            B = per_query(read_trec(RUNS_DIR / f"{d}.top100.{b}.trec"), q)
+            ks = sorted(set(J) & set(B))
+            diff = 100 * np.mean([J[k] - B[k] for k in ks])
+            pv = stats.ttest_rel([J[k] for k in ks], [B[k] for k in ks]).pvalue
+            out.append(f"{diff:+.1f}" + ("$^{*}$" if pv < 0.05 else ""))
+        return " & ".join(out)
+
+    lines += [r"\midrule", r"$\Delta$ Jev$-$bge (=448) & " + deltas("jev-p448-score4", "bge-m3-p448") + r" \\"]
+    if all((RUNS_DIR / f"{d}.top100.qwen3-reranker-8B-4k.trec").exists() for d in LONG):  # issue #5
+        lines.append(r"$\Delta$ Jev$-$Qwen8B (4k chars) & " + deltas("jev-score4", "qwen3-reranker-8B-4k") + r" \\")
+    lines += [r"\bottomrule", r"\end{tabular}", r"\end{table}"]
     return "\n".join(lines)
 
 

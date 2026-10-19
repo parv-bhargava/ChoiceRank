@@ -3,6 +3,7 @@
   laya, laya-multilingual              typed decision model (free, local CPU)
   jev, clef, clef-flash                typed decision models (PAID APIs)
   jeff-0.8b, jeff-2b                   typed decision model (free, local server / Colab T4)
+  qwen3-reranker-<size>[-4k]           label-probability LLM reranker; -4k reads the first 4,000 characters like Jev
 """
 
 from __future__ import annotations
@@ -27,6 +28,10 @@ def make_judge(model: str, qtype: str = "choice3") -> Judge:
         from .llm_yesno import LLMYesNoJudge
 
         return LLMYesNoJudge(model)
+    if model.startswith("qwen3-reranker-") and model.endswith("-4k"):  # e.g. qwen3-reranker-8B-4k: Jev's 4,000 chars
+        from .crossencoder import Qwen3RerankerJudge
+
+        return Qwen3RerankerJudge(model.split("-")[2], passage_tokens=2304, passage_chars=4000, label=model)
     if model.startswith("qwen3-reranker-"):  # e.g. qwen3-reranker-0.6B: label-probability (P(yes)) LLM reranker
         from .crossencoder import Qwen3RerankerJudge
 
