@@ -109,14 +109,19 @@ def ranking_table(rank: pd.DataFrame, sig: pd.DataFrame, compact=False) -> str:
 def calibration_table(cal: pd.DataFrame, transfer: pd.DataFrame | None = None) -> str:
     """Raw ECE; transfer-calibrated ECE (Platt fit on the OTHER collections, no target labels), pooled over all of them
     and restricted to those graded like the target; in-collection Platt (10x repeated 5-fold query cross-fit; needs
-    target labels); Brier; mean prediction; latency; cost. Jev C3 is shown under both readouts (review round 3)."""
+    target labels); Brier; mean prediction; latency; cost. Choice-3/Score-4 rows use the strict readout on every
+    collection; the post-hoc per-collection readout policy appears as marked sensitivity rows (issue #8)."""
     rows = [("minilm", "MiniLM-L6"), ("bge-m3", "bge-v2-m3"), ("qwen3-reranker-0.6B", "Qwen3-Rer.-0.6B"),
             ("qwen3-reranker-4B", "Qwen3-Rer.-4B"), ("qwen3-reranker-8B", "Qwen3-Rer.-8B"),
             ("qwen235-yesno", "Qwen3-235B P(yes)$^\\ast$"),
-            ("laya-choice3", "Laya C3"), ("laya-noul", "Laya Noul"), ("jeff-0.8b-choice3", "Jeff C3"),
-            ("jeff-0.8b-noul", "Jeff Noul"), ("clef-choice3", "Clef C3$^\\ast$"), ("clef-noul", "Clef Noul$^\\ast$"),
-            ("clef-score4", "Clef S4$^\\ast$"), ("jev-choice3", "Jev C3"), ("jev-choice3@strict", "Jev C3 (strict)$^\\dagger$"),
-            ("jev-noul", "Jev Noul"), ("jev-score4", "Jev S4")]
+            ("laya-choice3@strict", "Laya C3"), ("laya-choice3", "\\quad policy$^\\dagger$"), ("laya-noul", "Laya Noul"),
+            ("jeff-0.8b-choice3@strict", "Jeff C3"), ("jeff-0.8b-choice3", "\\quad policy$^\\dagger$"),
+            ("jeff-0.8b-noul", "Jeff Noul"),
+            ("clef-choice3@strict", "Clef C3$^\\ast$"), ("clef-choice3", "\\quad policy$^{\\ast\\dagger}$"),
+            ("clef-noul", "Clef Noul$^\\ast$"),
+            ("clef-score4@strict", "Clef S4$^\\ast$"), ("clef-score4", "\\quad policy$^{\\ast\\dagger}$"),
+            ("jev-choice3@strict", "Jev C3"), ("jev-choice3", "\\quad policy$^\\dagger$"), ("jev-noul", "Jev Noul"),
+            ("jev-score4@strict", "Jev S4"), ("jev-score4", "\\quad policy$^\\dagger$")]
     d = cal[cal.dataset.isin(CALIB)].groupby("system")
     agg = pd.DataFrame({"ECE": d.ECE.mean(), "Brier": d.Brier.mean(), "ECE_Platt": d.ECE_Platt.mean(),
                         "mean_p": d.mean_p.mean(), "base": d.base_rate.mean()})
@@ -136,8 +141,10 @@ def calibration_table(cal: pd.DataFrame, transfer: pd.DataFrame | None = None) -
     allc = cal[cal.dataset.isin(DL + BEIR8)].groupby("system")
     agg["lat"], agg["lat95"], agg["usd"] = allc.lat_p50_ms.median(), allc.lat_p95_ms.median(), allc.usd_per_1k_q.mean()
     rows = [(k, l) for k, l in rows if k in agg.index]
-    full = [r for r, _ in rows if r.endswith("@strict") or
-            cal[(cal.system == r) & cal.dataset.isin(CALIB)].dataset.nunique() == len(CALIB)]
+    n_calib = cal[cal.dataset.isin(CALIB)].groupby("system").dataset.nunique()
+    if (r3 / "r3_calib_robust.csv").exists():  # readout variants such as 'jev-choice3@strict' are not in calibration.csv
+        n_calib = n_calib.combine_first(rob.dataset.nunique())
+    full = [r for r, lab in rows if n_calib.get(r, 0) == len(CALIB) and "policy" not in lab]
     best = {c: agg.loc[full, c].min() for c in ["ECE", "ECE_LOCO", "ECE_match", "Brier", "ECE_Platt"] if c in agg}
     lines = [r"\begin{table}[t]", r"\centering", r"\footnotesize", r"\setlength{\tabcolsep}{1.6pt}",
              r"\caption{Calibration of $P(\text{relevant})$ on the nine collections with judged negatives "
@@ -146,7 +153,8 @@ def calibration_table(cal: pd.DataFrame, transfer: pd.DataFrame | None = None) -
              r"the same numeric-threshold group, balancing source collections (Group: DL$\to$DL, BEIR$\to$BEIR); "
              r"the group need not share identical relevance semantics. All weights pairs equally. "
              r"In-coll.: Platt with 10$\times$ repeated 5-fold query cross-fitting on the target collection (needs target labels; SD $\le$0.6). "
-             r"C3/S4: Choice-3/Score-4. $^\dagger$Strict readout on every collection instead of the per-collection policy (Section~\ref{sec:setup}). "
+             r"C3/S4: Choice-3/Score-4, strict readout on every collection. $^\dagger$Sensitivity row: post-hoc per-collection readout policy "
+             r"(lenient on TREC-COVID, DBPedia, News; Section~\ref{sec:setup}); excluded from bold. "
              r"$^\ast$Seven of the nine collections (no DBPedia, News). Bold: best among systems on all nine.}",
              r"\label{tab:calibration}",
              r"\begin{tabular}{lrrrrrr}", r"\toprule",

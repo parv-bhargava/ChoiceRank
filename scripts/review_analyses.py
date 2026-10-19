@@ -91,12 +91,17 @@ def transfer():
     pd.DataFrame(out).to_csv(RESULTS_DIR / "calib_transfer.csv", index=False)
 
 
+STRICT_VARIANTS = ["laya-choice3", "jeff-0.8b-choice3", "clef-choice3", "clef-score4", "jev-choice3", "jev-score4"]
+
+
 def bounds():
+    """Also reports the strict readout on every collection ('<system>@strict') for the Choice-3/Score-4 systems."""
     out = []
-    for s in SYSTEMS:
+    for name in SYSTEMS + [f"{s}@strict" for s in STRICT_VARIANTS]:
+        s, _, ro = name.partition("@")
         for ds in [d for d in CALIB if has_run(s, d)]:
-            j, u = load_pairs(s, ds), load_pairs(s, ds, dense=False)
-            out.append(dict(system=s, dataset=ds, ECE_judged=100 * ece(j.p.to_numpy(), j.y.to_numpy()),
+            j, u = load_pairs(s, ds, ro or None), load_pairs(s, ds, ro or None, dense=False)
+            out.append(dict(system=name, dataset=ds, ECE_judged=100 * ece(j.p.to_numpy(), j.y.to_numpy()),
                             ECE_unjudged0=100 * ece(u.p.to_numpy(), u.y.to_numpy()),
                             mean_p_pos=j[j.y == 1].p.mean(), mean_p_neg=j[j.y == 0].p.mean(),
                             judged_share=len(j) / max(len(u), 1)))

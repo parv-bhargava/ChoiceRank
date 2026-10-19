@@ -27,7 +27,7 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 - **Modifiers and suffixes:**
   - `-p448`: every passage cut to its first 448 tokens.
   - `bge-m3-2048`: bge with a 2,048-token window.
-  - `@strict`: Choice-3 under the strict readout on every collection.
+  - `@strict`: Choice-3 or Score-4 under the strict readout on every collection (the main calibration rows); without the suffix, these systems use the post-hoc per-collection readout policy.
   - `mean9`: mean over the 9 calibration collections.
 
 ## 1. Ranking effectiveness (RQ1)
@@ -65,7 +65,7 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 | `calib_transfer_nodl.csv` | Transfer fit only on the other BEIR collections. |
 | `r3_incoll.csv` | In-collection Platt scaling, 10× repeated 5-fold query cross-fitting (uses target labels; reference floor). |
 | `calib_common7.csv` | Calibration on the 7 collections shared by all API models. |
-| `calib_bounds.csv` | ECE on judged pairs vs. treating unjudged candidates as non-relevant; mean P(rel) for relevant / non-relevant pairs. |
+| `calib_bounds.csv` | ECE on judged pairs vs. treating unjudged candidates as non-relevant; mean P(rel) for relevant / non-relevant pairs. Includes `@strict` rows for the Choice-3/Score-4 systems. |
 | `r3_yesno_fallback.csv` | How often neither / only one of the Yes/No tokens appeared in the top-5 log-probabilities of the API yes/no baselines. |
 
 ## 3. Context selection for RAG (RQ3)

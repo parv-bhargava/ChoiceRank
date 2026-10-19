@@ -36,7 +36,10 @@ RNG = np.random.default_rng(0)
 REPS = 2000
 CAL_SYS = ["bge-m3", "minilm", "qwen3-reranker-0.6B", "laya-choice3", "laya-noul", "jeff-0.8b-choice3",
            "jev-choice3", "jev-noul", "jev-score4", "jev-choice3@strict", "jeff-0.8b-noul", "clef-choice3", "clef-noul",
-           "clef-score4", "qwen235-yesno", "qwen3-reranker-4B", "qwen3-reranker-8B"]
+           "clef-score4", "qwen235-yesno", "qwen3-reranker-4B", "qwen3-reranker-8B",
+           # strict readout on every collection for the remaining Choice-3/Score-4 systems (issue #8)
+           "jev-score4@strict", "laya-choice3@strict", "jeff-0.8b-choice3@strict", "clef-choice3@strict",
+           "clef-score4@strict"]
 
 
 def lp(s, d):
