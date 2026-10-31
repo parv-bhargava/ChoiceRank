@@ -1,6 +1,8 @@
-Typed decision models return probabilities over caller-defined options instead of free text.
-We evaluate four model families as pointwise passage rerankers on TREC Deep Learning 2019--2023 and eight BEIR collections, asking how well they rank, whether their relevance probabilities are calibrated, and whether those probabilities help select context for retrieval-augmented generation (RAG).
-The strongest, Jev, averages 55.3--56.1 nDCG@10, close to a 4-bit Qwen3-Reranker-8B (56.0) and above bge-reranker-v2-m3 (53.7).
-Without target-collection labels, its raw probabilities are better calibrated than bge-reranker-v2-m3's (expected calibration error 15.0 vs.\ 20.0), but calibrating the cross-encoder on other collections closes this gap, and rewording the prompt changes calibration error by more.
-In RAG on MuSiQue with three generators, Jev's rankings give higher answer F1 than bge-reranker-v2-m3 in all 27 policy--generator comparisons and than Qwen3-Reranker-8B in 26, yet probability thresholds do not beat fixed top-$k$ selection.
-Better-calibrated probabilities alone do not improve context selection.
+Typed decision models return probabilities over caller-defined options.
+We test four families as pointwise rerankers of BM25 top-100 candidates from 13 TREC DL and BEIR collections.
+Jev averages 55.3--56.1 nDCG@10, on par with Qwen3-Reranker-8B (56.0) and above bge-reranker-v2-m3 (53.7), varying widely by collection.
+Clef does not differ significantly from its base on six of seven collections; Jeff improves on its base.
+Jev's raw yes/no probabilities have lower calibration error than bge's (15.0 vs.\ 20.0), but bge calibrated on same-threshold collections closes this gap, and prompt rewording moves it by more.
+In retrieval-augmented generation on a family-disjoint MuSiQue split, Jev raises multi-hop F1 over bge in all 27 policy--generator pairs (26 significant after Holm) and over Qwen3-Reranker-8B in 26 (14 significant); on NQ, one of 27 is significant.
+Probability thresholds do not beat fixed top-$k$.
+Typed decision models are competitive rerankers, but calibration alone does not improve context selection.
