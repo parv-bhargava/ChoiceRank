@@ -1,15 +1,18 @@
-
 \documentclass[12pt,a4paper]{article}
 
 \usepackage[margin=1in]{geometry}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage{setspace}
+\usepackage{xcolor}
 \usepackage[hidelinks]{hyperref}
 
 \setstretch{1.15}
 \setlength{\parindent}{0pt}
 \setlength{\parskip}{6pt}
+
+% details still to be supplied before submission; must be empty in the final version
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
 
 \begin{document}
 
@@ -28,18 +31,16 @@ Typed Decision Models as Passage Rerankers: Effectiveness, Calibration, and Cont
 
 % Authors and affiliations
 Parv Bhargava$^{1,*}$,
-Amir Jafari$^{2}$,
-Aihan Liu$^{3}$
+Amir Jafari$^{1}$,
+Aihan Liu$^{2}$
 
 
 \vspace{0.6cm}
 
 \small
-$^{1}$ Data Science, George Washington University, Washington D.C., USA
+$^{1}$ Data Science, The George Washington University, Washington, DC, USA
 
-$^{2}$ Data Science, George Washington University, Washington D.C., USA
-
-$^{3}$ University Libraries, Northwestern Univerisity, Evanston, IL, USA
+$^{2}$ University Libraries, Northwestern University, Evanston, IL, USA
 
 \vspace{0.3cm}
 $^{*}$ Corresponding author
@@ -52,29 +53,36 @@ $^{*}$ Corresponding author
 \section*{Corresponding Author}
 % ==========================================
 
-Name: Author Three
+Name: Parv Bhargava
 
-Institution: University One
+Institution: The George Washington University
 
-Institutional Address:
-Street Address, City, State, Postal Code, Country
+Institutional address: \todo{department street address, Washington, DC, postal code, USA}
 
-Phone: +1 XXX-XXX-XXXX
+Phone: \todo{phone number}
 
-Email: \href{mailto:author@university.edu}
-{author@university.edu}
+Email: \todo{institutional email address}
+
+
+% ==========================================
+\section*{Acknowledgements}
+% ==========================================
+
+% SAGE: name non-author contributors here (with their consent), any writing or editing assistance,
+% and the use of generative AI tools, as the journal's AI policy requires.
+\todo{disclose the use of AI tools for code, analysis or writing, or state that none were used}
 
 
 % ==========================================
 \section*{Author Contributions}
-% Optional
 % ==========================================
 
-Parv Bhargava: Conceptualization, Methodology, Formal analysis, Writing -- original draft.
+% CRediT roles (https://credit.niso.org)
+Parv Bhargava: Conceptualization, Methodology, Software, Formal analysis, Investigation, Writing -- original draft.
 
-Amir Jafari: Data analysis, Validation.
+Amir Jafari: Formal analysis, Validation. \todo{confirm roles, e.g.\ Supervision, Writing -- review and editing}
 
-Aihan Liu: Validation, Writing -- review and editing.
+Aihan Liu: Validation, Writing -- review and editing. \todo{confirm roles}
 
 % ==========================================
 \section*{Statements and Declarations}
@@ -82,11 +90,7 @@ Aihan Liu: Validation, Writing -- review and editing.
 
 \subsection*{Ethical Considerations}
 
-Not applicable.
-
-% Replace if ethics approval was required.
-% Include the committee name, institution,
-% and approval number, or waiver details.
+Ethical approval was not required for this study. It uses only publicly available benchmark collections and their published relevance judgments, and it involved no human participants, personal data, or animals.
 
 \subsection*{Consent to Participate}
 
@@ -98,21 +102,14 @@ Not applicable.
 
 \subsection*{Declaration of Conflicting Interest}
 
-The author declares no competing interests and has no relationship with TypeSafe (Jev), Cloudflare (Clef), firelex (Jeff), ConvAI Innovations (Laya), or OpenRouter.
-
+The authors declare no conflicts of interest and have no relationship with TypeSafe (Jev), Cloudflare (Clef), firelex (Jeff), ConvAI Innovations (Laya), or OpenRouter. \todo{each author to confirm}
 
 \subsection*{Funding Statement}
 
-This work received no external funding. All API costs were paid personally by the author; no company, including the providers of the evaluated models and OpenRouter, provided credits, payment, or other support.
-% Replace with funding agency and
-% grant number if applicable.
+The authors received no financial support for the research, authorship, and/or publication of this article. All API costs were paid personally by the first author; no company, including the providers of the evaluated models and OpenRouter, provided credits, payment, or other support. \todo{confirm that no grant or institution covered any costs}
 
 \subsection*{Data Availability}
 
-All collections are publicly distributed and are downloaded automatically by the released code; the underlying Robust04, TREC News, and Signal-1M corpora remain subject to their providers' data agreements. Code, prompts, split IDs, input hashes, and aggregate results are available at \url{https://github.com/parv-bhargava/ChoiceRank}; a Zenodo DOI will be added when the first public release is created.
-
-% Replace with the actual availability
-% statement, including restrictions
-% if the data cannot be shared.
+All collections are publicly distributed and are downloaded automatically by the released code; the underlying Robust04, TREC News, and Signal-1M corpora remain subject to their providers' data agreements. Code, prompts, split IDs, input hashes, and aggregate results are available at \url{https://github.com/parv-bhargava/ChoiceRank}.
 
 \end{document}
