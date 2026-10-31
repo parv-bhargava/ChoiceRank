@@ -34,3 +34,6 @@ HANDOFF.md
 
 # release and submission archives (built from tracked files)
 *.zip
+
+# SAGE upload files (built by SAGE/make_submission.py)
+SAGE/dist/
