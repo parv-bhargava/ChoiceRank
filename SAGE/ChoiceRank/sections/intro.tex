@@ -1,13 +1,13 @@
 \section{Introduction}
 
-Retrieval-augmented generation (RAG) pipelines typically retrieve candidates with a cheap first stage, rerank them with a cross-encoder~\cite{nogueira2019monobert} or an LLM~\cite{sun2023rankgpt}, and pass a fixed top-$k$ to the generator.
-Two weaknesses of this recipe are well known: cross-encoders trained on MS~MARCO transfer imperfectly to new domains~\cite{thakur2021beir}, and their scores are not probabilities~\cite{penha2021calibration}, so the cut-off $k$ is chosen by habit rather than by evidence.
+Retrieval-augmented generation (RAG) pipelines typically retrieve candidates with a cheap first stage, rerank them with a cross-encoder\cite{nogueira2019monobert} or an LLM\cite{sun2023rankgpt}, and pass a fixed top-$k$ to the generator.
+Two weaknesses of this recipe are well known: cross-encoders trained on MS~MARCO transfer imperfectly to new domains\cite{thakur2021beir}, and their scores are not probabilities\cite{penha2021calibration}, so the cut-off $k$ is chosen by habit rather than by evidence.
 
-A recently released class of models targets both: \emph{typed decision models} such as Jev~\cite{jev}, Cloudflare Clef~\cite{clef}, Jeff~\cite{jeff}, and Laya~\cite{laya}.
+A recently released class of models targets both: \emph{typed decision models} such as Jev\cite{jev}, Cloudflare Clef\cite{clef}, Jeff\cite{jeff}, and Laya\cite{laya}.
 Instead of generating text, they answer a typed question about a state---a choice among named options, a yes/no (Noul) question, or an ordered scale---and return per-option probabilities.
 A relevance judgment is a natural typed question (\emph{Is this passage relevant to the query?}), and a per-option probability is exactly what a context-selection rule such as ``keep passages with $P(\text{relevant})>t$'' needs. Whether that probability is actually calibrated, and whether such a threshold beats a fixed cut-off, are empirical questions that the interface alone does not answer.
 
-Evidence so far is thin: decision models have been evaluated for recommendation reranking~\cite{lyu2026jevrec} and agent-memory selection~\cite{sharma2026selection}, a practitioner blog reports Jev results on two BEIR datasets~\cite{denser2026jevqwen}, and an early audit finds that typed readouts have not yet shown an accuracy advantage over comparable label-probability readouts~\cite{tang2026tdmaudit}.
+Evidence so far is thin: decision models have been evaluated for recommendation reranking\cite{lyu2026jevrec} and agent-memory selection\cite{sharma2026selection}, a practitioner blog reports Jev results on two BEIR datasets\cite{denser2026jevqwen}, and an early audit finds that typed readouts have not yet shown an accuracy advantage over comparable label-probability readouts\cite{tang2026tdmaudit}.
 No systematic study has evaluated decision models as passage rerankers on standard IR benchmarks against cross-encoders and label-probability LLM rerankers, or measured whether their relevance probabilities are calibrated.
 
 We provide that study, organized around three research questions.
