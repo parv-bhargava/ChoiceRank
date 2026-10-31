@@ -1,0 +1,46 @@
+% Full manuscript.
+% Build: tectonic main.tex   or   latexmk -pdf main.tex   (or upload paper/ to Overleaf)
+% Numbers in tables/ and figures/ are generated: scripts/eval_all.py -> significance.py -> make_tables.py / make_figures.py
+\documentclass[Afour,sagev,times]{sagej}
+
+\usepackage{moreverb,url}
+
+\usepackage[colorlinks,bookmarksopen,bookmarksnumbered,citecolor=red,urlcolor=red]{hyperref}
+
+\usepackage[numbers,sort&compress]{natbib}
+
+\newcommand\BibTeX{{\rmfamily B\kern-.05em \textsc{i\kern-.025em b}\kern-.08em T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+
+\begin{document}
+\title{Typed Decision Models as Passage Rerankers: Effectiveness, Calibration, and Context Selection}
+
+\author{Anonymous Saga Journal Submission}
+
+
+\begin{abstract}
+\input{sections/abstract}
+\end{abstract}
+
+\keywords{reranking, decision models, calibration, retrieval-augmented generation, BEIR}
+
+\maketitle
+
+\input{sections/intro}
+\input{sections/related}
+\input{sections/method}
+\input{sections/experiments}
+\input{sections/results}
+\input{sections/conclusion}
+% \input{sections/declarations}
+
+% \bibliographystyle{ACM-Reference-Format}
+% \bibliography{refs}
+
+
+\bibliographystyle{unsrtnat}
+\bibliography{refs}
+
+\appendix
+\input{sections/appendix}
+\end{document}
