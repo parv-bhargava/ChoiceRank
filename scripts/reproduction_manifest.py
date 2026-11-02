@@ -18,7 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from choicerank import DATA_DIR, RESULTS_DIR, ROOT, RUNS_DIR
-from choicerank.rag import SEED, load_split, normalize
+from choicerank.rag import FD_SPLITS, SEED, load_split, normalize
 
 
 def digest(path):
@@ -40,6 +40,9 @@ def main():
             shared_questions += [dict(dataset=dataset, split_a=a, split_b=b,
                                       qid_a=by_question[normalize(it.question)], qid_b=it.qid)
                                  for it in loaded[b] if normalize(it.question) in by_question]
+    splits["musique"] |= {split: [item.qid for item in load_split("musique", split)] for split in FD_SPLITS}
+    if set(splits["musique"]["calib_fd"]) & set(splits["musique"]["final_fd"]):
+        raise ValueError("Overlapping split IDs: musique calib_fd/final_fd")
     packages = {}
     for name in ("torch", "transformers", "sentence-transformers", "ir_measures", "numpy", "scipy", "pandas",
                  "pyarrow", "matplotlib", "laya", "bitsandbytes"):
@@ -56,11 +59,15 @@ def main():
             raise ValueError("MuSiQue component audit is stale for the current source")
         component_audit = dict(path=component_audit_path.relative_to(ROOT).as_posix(),
                                sha256=digest(component_audit_path), comparisons=audit["comparisons"])
+    fd_audit_path = RESULTS_DIR / "musique_fd_split_audit.json"
+    fd_audit = (dict(path=fd_audit_path.relative_to(ROOT).as_posix(), sha256=digest(fd_audit_path))
+                if fd_audit_path.exists() else None)
     out = dict(created_utc=datetime.now(timezone.utc).isoformat(), python=platform.python_version(),
                packages=packages, split_seed=SEED, split_ids=splits,
                normalized_question_overlap=shared_questions,
                normalized_question_overlap_scope="Whole normalized wording only; this does not measure decomposition-family reuse",
-               musique_component_overlap_audit=component_audit, input_files=sources,
+               musique_component_overlap_audit=component_audit, musique_family_disjoint_audit=fd_audit,
+               input_files=sources,
                analysis_source_sha256={p.relative_to(ROOT).as_posix(): digest(p)
                                        for folder in (ROOT / "scripts", ROOT / "choicerank")
                                        for p in sorted(folder.rglob("*.py"))},
