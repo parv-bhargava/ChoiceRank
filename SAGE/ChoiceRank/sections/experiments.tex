@@ -46,4 +46,4 @@ Question-level tests do not account for dependence between questions of the same
 
 Local models ran on a laptop RTX~4060 (8\,GB); Jeff ran through its reference server, whose attention kernels fall back to a slow reference implementation on Windows, so its latency is pessimistic.
 API models were called through OpenRouter; Jev received all three questions per call. All API calls in this study cost about \$55 in total, so every experiment can be reproduced on a small budget.
-OpenRouter routed the Llama and Qwen3-30B generators across several hosting providers (Qwen2.5-7B was served by one), which may serve differently quantized weights; provider assignment was balanced across policies, and we record the provider of every call.
+OpenRouter routed the Llama and Qwen3-30B generators across several hosting providers (Qwen2.5-7B was served by one), which may serve differently quantized weights; provider assignment was roughly similar across policies within a run, but the Qwen3-Reranker contexts were generated later with a different provider mix, so comparisons with them also differ in serving provider; we record the provider of every call.
