@@ -115,6 +115,7 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 | `r4_dl19_completion_range.csv` | DL19 SPLADE++ Jev S4 − bge nDCG@10 under standard and condensed scoring, with every unjudged passage in the two top-10s set to grade 1, 2 or 3, and the exact minimum and maximum over all completions. |
 | `r4_rag_calibration.csv` | Calibration of the RQ3 probabilities on the final RAG sets: raw and Platt (fit on the calibration split) ECE and Brier, with a 500-replicate question-cluster bootstrap CI of the Platt ECE. |
 | `r4_rag_threshold.csv` | Share of questions where Jev's thresholded set is not a prefix of its Score-4 ranking, and threshold-policy F1 against fixed top-*k* F1 interpolated at the same mean number of passages (descriptive). |
+| `r4_rag_threshold_rankers.csv` | Platt-threshold ($P>0.3$, $P>0.2$) F1 against fixed top-*k* F1 interpolated at the same mean number of passages for Jev, bge-reranker-v2-m3, Qwen3-Reranker-8B and Qwen3-Reranker-0.6B, with the held-out Platt ECE of the probabilities each ranker thresholds (descriptive). |
 | `r4_prediction_intervals.csv` | 95%/90% prediction intervals for the effect on a new collection, from the pooled random-effects estimates. |
 | `r4_musique_fd_mechanism.csv` | First-ranked passage on `final_fd` (gold hit, last hop, first hop, answer containment) by ranker and hop count, with family-clustered paired differences. |
 | `r4_rag_fd_hops.csv` | `final_fd` F1/EM differences by hop count with family cluster-robust 95% CIs. |

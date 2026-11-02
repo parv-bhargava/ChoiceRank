@@ -8,6 +8,7 @@ Outputs (results/):
   r4_rag_calibration.csv      held-out calibration of the RQ3 probabilities on the final RAG sets (raw and Platt fit on the
                               calibration split; question-cluster bootstrap CI of the Platt ECE)
   r4_rag_threshold.csv        Jev rank/threshold mismatch and threshold F1 versus fixed top-k interpolated at equal size
+  r4_rag_threshold_rankers.csv  Platt-threshold F1 versus equal-size top-k for Jev, bge, Qwen8B and Qwen0.6B, with Platt ECE
   r4_prediction_intervals.csv 95%/90% prediction intervals for a new collection (Higgins-Thompson-Spiegelhalter)
   r4_musique_fd_mechanism.csv first-ranked passage on the family-disjoint split: hit, last hop, first hop, answer containment
   r4_rag_fd_hops.csv          family-disjoint F1/EM differences by hop count with family cluster-robust CIs
@@ -171,6 +172,28 @@ def rag_threshold():
     pd.DataFrame(rows).to_csv(RESULTS_DIR / "r4_rag_threshold.csv", index=False)
 
 
+def rag_threshold_rankers():
+    """Platt-threshold F1 minus fixed top-k F1 interpolated at equal mean size, for every ranker (descriptive),
+    next to the held-out Platt ECE of the probabilities each ranker thresholds."""
+    E = pd.read_csv(RESULTS_DIR / "r4_rag_calibration.csv")
+    used = {("musique", "jev"): "p_noul", ("nq", "jev"): "p_choice3"}
+    rows = []
+    for f, split in (("rag_final_fd_summary.csv", "final_fd"), ("rag_final_summary.csv", "final")):
+        S = pd.read_csv(RESULTS_DIR / f)
+        for (ds, gen), g in S.groupby(["dataset", "gen"]):
+            a = g.set_index("policy")
+            for rk in ("jev", "bge-m3", "qwen3-reranker-8B", "qwen3-reranker-0.6B"):
+                ks = a.loc[[f"{rk}:top{k}" for k in (1, 2, 3, 5)]]
+                e = E[(E.dataset == ds) & (E.split == split) & (E.ranker == rk) &
+                      (E.readout == used.get((ds, rk), "p_rel"))].ece_platt.iloc[0]
+                for pol in ("thrPlatt0.3", "thrPlatt0.2"):
+                    n, f1 = a.loc[f"{rk}:{pol}", ["n", "F1"]]
+                    fk = np.interp(n, ks.n.to_numpy(), ks.F1.to_numpy())
+                    rows.append(dict(dataset=ds, split=split, gen=gen, ranker=rk, policy=pol, ece_platt=e, mean_n=n,
+                                     F1=f1, F1_topk_same_n=fk, diff=f1 - fk))
+    pd.DataFrame(rows).to_csv(RESULTS_DIR / "r4_rag_threshold_rankers.csv", index=False)
+
+
 def prediction_intervals():
     S = pd.read_csv(RESULTS_DIR / "r3_meta_sensitivity.csv")
     rows = []
@@ -297,6 +320,7 @@ def qwen8b_4k():
 
 if __name__ == "__main__":
     for name in sys.argv[1:] or ["rag_family_tests", "dl19_completion_range", "rag_calibration", "rag_threshold",
+                                 "rag_threshold_rankers",
                                  "prediction_intervals", "musique_fd_mechanism", "calib_extra", "judged_counts", "qwen8b_4k"]:
         globals()[name]()
         print("done", name, flush=True)
