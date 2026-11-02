@@ -4,5 +4,5 @@ Jev averages 55.3--56.1 nDCG@10, on par with 4-bit Qwen3-Reranker-8B (56.0) and 
 Clef differs significantly from its base on one of seven collections; Jeff improves on its base.
 Jev's raw yes/no probabilities have lower calibration error than bge's (15.0 vs.\ 20.0), but bge calibrated on same-threshold collections closes this gap, and prompt rewording moves it by more.
 In retrieval-augmented generation on family-disjoint MuSiQue, Jev raises F1 over bge in all 27 policy--generator pairs (23 significant in family-clustered tests) and over Qwen3-Reranker-8B in 26 (12 significant); on NQ, one of 27 is significant.
-Thresholds on Platt-scaled probabilities, less calibrated than bge's, do not beat fixed top-$k$.
-Typed decision models are competitive rerankers whose value for context selection lies in ranking.
+Probability thresholds do not beat fixed top-$k$.
+Typed decision models are competitive rerankers, but calibration alone does not improve context selection.
