@@ -1,6 +1,6 @@
 \section{Additional Results}
 
-Table~\ref{tab:depth} reports effectiveness as a function of reranking depth; Table~\ref{tab:readouts} reports both probability readouts for every collection with judged negatives; Table~\ref{tab:judged} reports pool coverage and the pool-bias check for calibration; Table~\ref{tab:ragsel} reports generator-free selection quality for RQ3; Table~\ref{tab:rag-em} reports exact match for the RAG policies of Table~6 of the article; Table~\ref{tab:rag-family} reports the family-clustered F1 and exact-match tests on the family-disjoint MuSiQue split; Table~\ref{tab:rag-calib} reports the held-out calibration of the RQ3 probabilities.
+Table~\ref{tab:depth} reports effectiveness as a function of reranking depth; Table~\ref{tab:readouts} reports both probability readouts for every collection with judged negatives; Table~\ref{tab:judged} reports pool coverage and the pool-bias check for calibration; Table~\ref{tab:ragsel} reports generator-free selection quality for RQ3; Table~\ref{tab:rag-em} reports exact match for the RAG policies of Table~6 of the article; Table~\ref{tab:rag-family} reports the family-clustered F1 and exact-match tests on the family-disjoint MuSiQue split; Table~\ref{tab:rag-calib} reports the held-out calibration of the RQ3 probabilities; Table~\ref{tab:judged-counts} reports judged and unjudged candidates per collection.
 Code, prompts, and aggregate results are available in the reproduction repository (link withheld for anonymous review). All inputs are public and are downloaded by the code; the RAG splits are regenerated from a fixed seed, and the scripts reproduce every table and figure from the model outputs.
 
 \input{tables/app_depth}
@@ -36,6 +36,7 @@ We fixed three paraphrases each of the Noul question, the Qwen3-235B yes/no prom
 \input{tables/app_ranking_full}
 \input{tables/app_rag_family}
 \input{tables/app_rag_calib}
+\input{tables/app_judged_counts}
 
 \subsection{Neural first stage}\label{app:first-stage}
 
