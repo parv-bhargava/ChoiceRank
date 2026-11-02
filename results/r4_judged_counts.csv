@@ -1,0 +1,14 @@
+dataset,rel_threshold,judged_negatives,candidates,judged_relevant,judged_nonrelevant,unjudged
+dl19,2,True,4300,846,1411,2043
+dl20,2,True,5400,613,2246,2541
+dl21,2,True,5300,879,1907,2514
+dl22,2,True,7600,596,3201,3803
+dl23,2,True,8200,565,2444,5191
+trec-covid,1,True,5000,2359,1338,1303
+nfcorpus,1,False,22028,2113,0,19915
+touche,1,False,4900,490,0,4410
+dbpedia,1,True,39905,3759,6447,29699
+scifact,1,False,29966,314,0,29652
+signal,1,False,9700,709,0,8991
+news,1,True,5700,1095,1907,2698
+robust04,1,True,24900,3770,17033,4097

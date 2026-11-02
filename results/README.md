@@ -107,6 +107,22 @@ Aggregate results behind every table, figure and number in the paper *Typed Deci
 | `musique_clean_subset_metadata.json` | Subset definition, counts and settings. |
 | `musique_fd_split_audit.json` | Family-disjoint MuSiQue splits (`calib_fd`, `final_fd`; issue #3): sizes, hop mix, family counts, and checks that no decomposition ID or family is shared with each other or the original pilot. |
 
+## 3b. Referee-round analyses (`review4_analyses.py`)
+
+| File | Contents |
+|---|---|
+| `r4_rag_family_tests.csv` | MuSiQue (`final_fd` and original `final`) Jev vs. bge / Qwen3-Reranker-8B / 0.6B per policy, generator and metric (F1, EM): question-level *t*, family cluster-robust *t* (CR1, G−1 df) with 95% CI, family sign-flip and family-bootstrap p (20,000 replicates, seed 13), each Holm-corrected over the nine policies. |
+| `r4_dl19_completion_range.csv` | DL19 SPLADE++ Jev S4 − bge nDCG@10 under standard and condensed scoring, with every unjudged passage in the two top-10s set to grade 1, 2 or 3, and the exact minimum and maximum over all completions. |
+| `r4_rag_calibration.csv` | Calibration of the RQ3 probabilities on the final RAG sets: raw and Platt (fit on the calibration split) ECE and Brier, with a 500-replicate question-cluster bootstrap CI of the Platt ECE. |
+| `r4_rag_threshold.csv` | Share of questions where Jev's thresholded set is not a prefix of its Score-4 ranking, and threshold-policy F1 against fixed top-*k* F1 interpolated at the same mean number of passages (descriptive). |
+| `r4_prediction_intervals.csv` | 95%/90% prediction intervals for the effect on a new collection, from the pooled random-effects estimates. |
+| `r4_musique_fd_mechanism.csv` | First-ranked passage on `final_fd` (gold hit, last hop, first hop, answer containment) by ranker and hop count, with family-clustered paired differences. |
+| `r4_rag_fd_hops.csv` | `final_fd` F1/EM differences by hop count with family cluster-robust 95% CIs. |
+| `r4_calib_extra.csv` | Per-collection raw ECE/Brier of Laya, Jeff and Clef Score-4 and Clef Choice-3 under the strict and lenient readouts. |
+| `r4_judged_counts.csv` | Judged relevant, judged non-relevant and unjudged BM25 top-100 candidates per collection. |
+| `r4_qwen8b_4k.csv` | Qwen3-Reranker-8B reading the first 4,000 characters vs. 448 tokens on every collection where the 4,000-character run exists, and Jev S4 against both. |
+| `r4_qwen8b_4k_pooled.csv` | Pooled Jev S4 − Qwen3-Reranker-8B with the 4,000-character run substituted where it exists (448 tokens elsewhere), next to the all-448 estimate. |
+
 ## 4. Reproducibility
 
 `reproduction_manifest.json` records:
@@ -126,6 +142,7 @@ python scripts/eval_all.py               # ranking.csv, calibration.csv
 python scripts/significance.py           # significance.csv, significance_newer.csv
 python scripts/review_analyses.py        # calib_readouts/transfer/bounds/ci/common7/transfer_nodl, judged, rag_selection, rag_hops, rag_hit1
 python scripts/review3_analyses.py       # all r3_*.csv, rag_thrraw.csv
+python scripts/review4_analyses.py       # all r4_*.csv (referee round; cached runs only)
 python scripts/depth_analysis.py         # depth.csv
 python scripts/truncation_stats.py       # truncation.csv
 python scripts/prompt_sensitivity.py     # prompt_sensitivity.csv
