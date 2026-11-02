@@ -7,7 +7,7 @@ Outputs (results/):
   r3_incoll.csv           in-collection Platt with 10x repeated 5-fold query cross-fitting (mean, sd)
   r3_meta.csv             random-effects (DerSimonian-Laird) pooled nDCG@10 difference over collections
   r3_eqctx.csv            paired tests for the equal-context (448-token) condition
-  r3_yesno_fallback.csv   share of yes/no judgments where neither Yes nor No was in the top-5 tokens
+  r3_yesno_fallback.csv   share of yes/no judgments where neither Yes nor No was in the top-5 tokens (graded: no digit)
 """
 
 from __future__ import annotations
@@ -233,6 +233,10 @@ def yesno_fallback():
         n = miss = only = 0
         for (payload,) in con.execute("select payload from j where judge = ?", (judge,)):
             raw = json.loads(payload).get("raw", {}); n += 1
+            if "p_digits" in raw:  # graded 0-4 readout: no digit vs only some of the five digits in the top-5
+                present = sum(v > 0 for v in raw["p_digits"].values())
+                miss += present == 0; only += 0 < present < 5
+                continue
             py, pn = raw.get("p_yes", 0), raw.get("p_no", 0)
             miss += (py + pn) == 0; only += (py == 0) != (pn == 0)
         out.append(dict(judge=judge, n=n, neither_pct=100 * miss / max(n, 1), only_one_pct=100 * only / max(n, 1)))
