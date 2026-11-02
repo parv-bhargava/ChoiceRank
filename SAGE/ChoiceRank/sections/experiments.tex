@@ -22,7 +22,7 @@ For reference we also quote published results on the identical BM25 top-100 runs
 Models read different amounts of each passage: the cross-encoders 512 tokens including the query, Laya about 320 passage tokens, Jev, Clef, and Jeff the first 4{,}000 characters ($\approx$1{,}000 tokens), and the label-probability LLMs 448 passage tokens.
 On TREC DL, DBPedia, and Signal almost no passage is truncated; on the BEIR abstract collections (TREC-COVID, NFCorpus, SciFact) 29--38\% exceed the cross-encoders' budget; and on Touche, News, and Robust04 69--97\% do (Table~\ref{tab:longdoc}).
 As newer-content benchmark checks we add NovelEval-2306 (released with RankGPT\cite{sun2023rankgpt}; 21 queries, 20 passages each, graded 0--2) and FutureQueryEval\cite{abdallah2025futurequery} (148 queries about events after April 2025, graded 0--2, BM25 top-100 built with \texttt{bm25s}\cite{lu2024bm25s} over its 2{,}787-document corpus); they are reported separately and not included in the 13-collection averages.
-For the three long-document collections we add an equal-budget condition in which every passage is cut to its first 448 tokens before any model sees it, and bge-reranker-v2-m3 at a 2{,}048-token window.
+For the three long-document collections we add an equal-budget condition in which every passage is cut to its first 448 tokens before any model sees it, and bge-reranker-v2-m3 at a 2{,}048-token window. On these and the three abstract collections, Qwen3-Reranker-8B also reads the first 4{,}000 characters of each passage, as the decision models do.
 
 \subsection{Metrics and tests}
 
