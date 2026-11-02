@@ -2,7 +2,7 @@
 \centering
 \footnotesize
 \setlength{\tabcolsep}{1.6pt}
-\caption{Calibration of $P(\text{relevant})$ on the nine collections with judged negatives (DL19--23, TREC-COVID, DBPedia, News, Robust04; unweighted mean over collections, ECE$\times$100, 15 bins, judged pairs only). Raw: no recalibration. Transfer (no target labels): Platt scaling fit on the other eight collections pooled (All) or only on the same numeric-threshold group, balancing source collections (Group: DL$\to$DL, BEIR$\to$BEIR); the group need not share identical relevance semantics. All weights pairs equally. In-coll.: Platt with 10$\times$ repeated 5-fold query cross-fitting on the target collection (needs target labels; SD $\le$0.6). C3/S4: Choice-3/Score-4, strict readout on every collection. $^\dagger$Sensitivity row: post-hoc per-collection readout policy (lenient on TREC-COVID, DBPedia, News; see \emph{Probability readout}); excluded from bold. $^\ast$Seven of the nine collections (no DBPedia, News). Bold: best among systems on all nine.}
+\caption{Calibration of $P(\text{relevant})$ on the nine collections with judged negatives (DL19--23, TREC-COVID, DBPedia, News, Robust04; unweighted mean over collections, ECE$\times$100, 15 bins, judged pairs only). Raw: no recalibration. Transfer (no target labels): Platt scaling fit on the other eight collections pooled (All) or only on the same numeric-threshold group, balancing source collections (Group: DL$\to$DL, BEIR$\to$BEIR); the group need not share identical relevance semantics. All weights pairs equally. In-coll.: Platt with 10$\times$ repeated 5-fold query cross-fitting on the target collection (needs target labels; SD over repetitions $\le$0.6 on average, at most 1.7 on one collection). C3/S4: Choice-3/Score-4, strict readout on every collection. $^\dagger$Sensitivity row: post-hoc per-collection readout policy (lenient on TREC-COVID, DBPedia, News; see \emph{Probability readout}); excluded from bold. $^\ast$Seven of the nine collections (no DBPedia, News). Bold: best among systems on all nine.}
 \label{tab:calibration}
 \begin{tabular}{lrrrrrr}
 \toprule
@@ -19,9 +19,11 @@ Qwen3-235B P(yes)$^\ast$ & 20.5 & 10.5 & 9.5 & 3.1 & 0.211 & 0.39 \\
 Laya C3 & 12.2 & 11.0 & 9.6 & 2.5 & 0.189 & 0.25 \\
 \quad policy$^\dagger$ & 11.0 & 7.5 & 9.3 & 2.3 & 0.184 & 0.36 \\
 Laya Noul & \textbf{10.7} & \textbf{10.7} & 9.5 & 2.2 & 0.185 & 0.35 \\
+Laya S4 & 17.9 & 11.1 & 9.3 & 2.2 & 0.212 & 0.47 \\
 Jeff C3 & 13.9 & 13.5 & 10.8 & 2.2 & 0.194 & 0.35 \\
 \quad policy$^\dagger$ & 15.3 & 5.2 & 5.9 & 2.5 & 0.195 & 0.46 \\
 Jeff Noul & 25.6 & 11.7 & 8.6 & \textbf{2.2} & 0.253 & 0.56 \\
+Jeff S4 & 15.3 & 14.1 & 9.7 & 2.3 & 0.196 & 0.40 \\
 Clef C3$^\ast$ & 12.3 & 14.4 & 10.8 & 4.2 & 0.167 & 0.21 \\
 \quad policy$^{\ast\dagger}$ & 7.8 & 8.3 & 10.4 & 3.3 & 0.134 & 0.28 \\
 Clef Noul$^\ast$ & 12.5 & 12.4 & 7.3 & 2.7 & 0.146 & 0.36 \\

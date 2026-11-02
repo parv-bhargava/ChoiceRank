@@ -2,7 +2,7 @@
 \centering
 \scriptsize
 \setlength{\tabcolsep}{2.5pt}
-\caption{Pool coverage and pool-bias checks. Judged@10 (\%) and condensed (judged-only) nDCG$'$@10, averaged over the collections each system was run on; ECE$\times$100 over the nine dense collections on judged pairs only vs.\ treating unjudged candidates as non-relevant; mean $P(\text{rel})$ on judged relevant / non-relevant pairs. $^\ast$Run on a subset of collections (Clef: 7; Qwen3-235B: 8), so its averages are not directly comparable.}
+\caption{Pool coverage and pool-bias checks. Judged@10 (\%) and condensed (judged-only) nDCG$'$@10, averaged over the collections each system was run on; ECE$\times$100 over the nine dense collections on judged pairs only vs.\ treating unjudged candidates as non-relevant; mean $P(\text{rel})$ on judged relevant / non-relevant pairs. Choice-3 and Score-4 probabilities use the post-hoc per-collection readout policy. $^\ast$Run on a subset of collections (Clef: 7; Qwen3-235B: 8), so its averages are not directly comparable.}
 \label{tab:judged}
 \begin{tabular}{lrrrrrrr}
 \toprule
@@ -16,6 +16,7 @@ bge-v2-m3 & 95.9 & 55.5 & 64.0 & 20.0 & 15.2 & 0.64 & 0.28 \\
 Qwen3-Rer.-0.6B & 93.4 & 56.4 & 63.5 & 36.1 & 31.5 & 0.83 & 0.51 \\
 Qwen3-235B P(yes)$^\ast$ & 87.1 & 74.9 & 62.9 & 20.5 & 15.8 & 0.74 & 0.24 \\
 Laya C3 & 81.1 & 48.1 & 58.6 & 11.0 & 14.2 & 0.50 & 0.30 \\
+Laya Noul & 79.8 & 48.3 & 58.2 & 10.7 & 11.8 & 0.49 & 0.28 \\
 Jeff C3 & 76.4 & 48.1 & 57.3 & 15.3 & 23.5 & 0.57 & 0.41 \\
 Clef C3$^\ast$ & 90.5 & 97.1 & 66.9 & 7.8 & 6.8 & 0.50 & 0.18 \\
 Clef S4$^\ast$ & 91.5 & 97.4 & 67.5 & 11.6 & 14.0 & 0.66 & 0.30 \\
