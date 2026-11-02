@@ -39,7 +39,9 @@ CAL_SYS = ["bge-m3", "minilm", "qwen3-reranker-0.6B", "laya-choice3", "laya-noul
            "clef-score4", "qwen235-yesno", "qwen3-reranker-4B", "qwen3-reranker-8B",
            # strict readout on every collection for the remaining Choice-3/Score-4 systems (issue #8)
            "jev-score4@strict", "laya-choice3@strict", "jeff-0.8b-choice3@strict", "clef-choice3@strict",
-           "clef-score4@strict"]
+           "clef-score4@strict",
+           # Score-4 of the small decision models, strict readout (referee round)
+           "laya-score4@strict", "jeff-0.8b-score4@strict"]
 
 
 def lp(s, d):
