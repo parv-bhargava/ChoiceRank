@@ -1,6 +1,6 @@
 Typed decision models return probabilities over caller-defined options.
 We test four families as pointwise rerankers of BM25 top-100 candidates from 13 TREC DL and BEIR collections.
-Jev averages 55.3--56.1 nDCG@10, on par with Qwen3-Reranker-8B (56.0) and above bge-reranker-v2-m3 (53.7), varying widely by collection.
+Jev averages 55.3--56.1 nDCG@10, similar to a 4-bit, 448-token Qwen3-Reranker-8B (56.0) and above bge-reranker-v2-m3 (53.7), varying widely by collection.
 Clef does not differ significantly from its base on six of seven collections; Jeff improves on its base.
 Jev's raw yes/no probabilities have lower calibration error than bge's (15.0 vs.\ 20.0), but bge calibrated on same-threshold collections closes this gap, and prompt rewording moves it by more.
 In retrieval-augmented generation on a family-disjoint MuSiQue split, Jev raises multi-hop F1 over bge in all 27 policy--generator pairs (23 significant with family-clustered Holm tests) and over Qwen3-Reranker-8B in 26 (12 significant); on NQ, one of 27 is significant.

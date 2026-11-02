@@ -26,7 +26,7 @@ These avoid Platt fitting but retain the readout chosen by Brier score on labell
 
 \subsection{Pooled-inference sensitivity}
 
-Table~\ref{tab:meta-sensitivity} contrasts normal and modified Knapp--Hartung intervals using the same DL heterogeneity estimates. The CSV additionally covers the DL and Clef--Jev format comparisons. Jev S4 versus bge on DL has mKH 90\% CI $[-1.81,3.16]$: non-inferiority at $-2$ survives, while equivalence does not. Clef--Jev equivalence survives for all three formats. Jev S4 versus Qwen8B and Clef S4 versus its base do not establish $\pm2$ equivalence under mKH. These analyses and margins are exploratory.
+Table~\ref{tab:meta-sensitivity} contrasts normal and modified Knapp--Hartung intervals using the same DL heterogeneity estimates. The CSV additionally covers the DL and Clef--Jev format comparisons. Jev S4 versus bge on DL has mKH 90\% CI $[-1.81,3.16]$: non-inferiority at $-2$ survives, while equivalence does not. Clef--Jev equivalence survives for all three formats. Jev S4 versus Qwen8B and Clef S4 versus its base do not establish $\pm2$ equivalence under mKH. These analyses and margins are exploratory. Random-effects 95\% prediction intervals for the difference on a new collection ($\hat\mu\pm t_{k-2}\sqrt{\hat\tau^2+\mathrm{SE}^2}$) are wide: $[-6.9,7.5]$ for Jev S4 minus Qwen8B, $[-7.5,12.6]$ for Jev S4 minus bge ($[-4.0,7.4]$ without Robust04), and $[-3.7,5.7]$ for Clef S4 minus its base.
 
 \subsection{Prompt sensitivity}\label{app:prompts}
 
