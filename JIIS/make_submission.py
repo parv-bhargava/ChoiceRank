@@ -1,4 +1,5 @@
-"""Build the Journal of Intelligent Information Systems (Springer) upload files from JIIS/ChoiceRank.
+"""Build the Journal of Intelligent Information Systems (Springer) upload files from JIIS/ChoiceRank and check that the
+manuscript is anonymous.
 
 python JIIS/make_submission.py [--tectonic PATH] -> JIIS/dist/
   jiis_manuscript.tex   one flattened source file: sections and tables inlined, bibliography pasted in from the .bbl
@@ -6,9 +7,12 @@ python JIIS/make_submission.py [--tectonic PATH] -> JIIS/dist/
   latex_source.zip      the files above in one archive
   jiis_manuscript.pdf   compiled from the flattened source
   ESM_1.pdf             Online Resource 1 (supplementary tables and analyses)
+  title_page.tex/.pdf   identifying details (not sent to reviewers), uploaded on their own and kept out of the zip
 
 Springer asks for one .tex file without \\input, no subfolders, and figures named Fig1, Fig2, ...
-Exits with status 1 if the flattened source does not compile cleanly or the manuscript exceeds the 25-page limit.
+Exits with status 1 if the flattened source does not compile cleanly, the manuscript exceeds the 25-page limit,
+the zip has a subfolder, an author, affiliation or the repository appears in a file sent to reviewers,
+or the title page still has a [TODO: ...] placeholder.
 """
 
 from __future__ import annotations
@@ -28,6 +32,14 @@ MAIN = "jiis_manuscript.tex"
 FIGURES = {}  # main-text figures as {"figures/x.pdf": "Fig1.pdf"}; the reliability figure is in Online Resource 1
 PAGE_LIMIT = 25  # JIIS: including references, tables, and figures
 INPUT = re.compile(r"\\input\{([^}]+)\}")
+TITLE_PAGE = "title_page.tex"
+# authors, affiliations and the repository; "Liu" alone would also match Liu et al. in the references
+IDENTIFYING = re.compile(r"Bhargava|Jafari|Aihan|\bParv\b|parv-bhargava|George Washington|\bGWU\b|gwu\.edu|Northwestern",
+                         re.I)
+
+
+def identifying(text, where):
+    return [f"{where}: names {m.group(0)!r}" for m in IDENTIFYING.finditer(text)]
 
 
 def inline(path):
@@ -77,8 +89,14 @@ def main():
         for name in sources:
             z.write(DIST / name, name)
     print(f"wrote {DIST / 'latex_source.zip'} ({len(sources)} files, no subfolders)")
+    shutil.copy2(SRC / TITLE_PAGE, DIST / TITLE_PAGE)
 
     problems = []
+    with zipfile.ZipFile(DIST / "latex_source.zip") as z:
+        problems += [f"latex_source.zip: subfolder in {n}" for n in z.namelist() if "/" in n]
+    problems += identifying(text, MAIN)
+    problems += [f"{TITLE_PAGE}: placeholder {m}"
+                 for m in re.findall(r"\[TODO:[^]]*\]", (SRC / TITLE_PAGE).read_text(encoding="utf-8"))]
     build = compile_tex(MAIN, DIST, engine)
     shutil.copy2(build / MAIN.replace(".tex", ".pdf"), DIST / MAIN.replace(".tex", ".pdf"))
     log = (build / MAIN.replace(".tex", ".log")).read_text(encoding="utf-8", errors="replace")
@@ -87,6 +105,9 @@ def main():
     supp = compile_tex("supplementary.tex", SRC, engine)
     shutil.copy2(supp / "supplementary.pdf", DIST / "ESM_1.pdf")
     shutil.rmtree(supp)
+    title = compile_tex(TITLE_PAGE, SRC, engine)
+    shutil.copy2(title / TITLE_PAGE.replace(".tex", ".pdf"), DIST / TITLE_PAGE.replace(".tex", ".pdf"))
+    shutil.rmtree(title)
     shutil.rmtree(build)
 
     import pymupdf  # only needed to check compiled PDFs
@@ -94,6 +115,7 @@ def main():
         with pymupdf.open(DIST / pdf) as doc:
             text = "".join(page.get_text() for page in doc)
             print(f"built {DIST / pdf}: {len(doc)} pages")
+            problems += identifying(text + " ".join(v for v in doc.metadata.values() if v), pdf)
             if "??" in text:
                 problems.append(f"{pdf}: unresolved reference (??)")
             if pdf == MAIN.replace(".tex", ".pdf") and len(doc) > PAGE_LIMIT:
@@ -101,7 +123,7 @@ def main():
     if problems:
         print("\n".join(problems), file=sys.stderr)
         sys.exit(1)
-    print("submission checks passed")
+    print("submission checks passed (anonymity, no subfolders, references, page limit, title page)")
 
 
 if __name__ == "__main__":
