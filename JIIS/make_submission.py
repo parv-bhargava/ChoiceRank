@@ -2,7 +2,7 @@
 
 python JIIS/make_submission.py [--tectonic PATH] -> JIIS/dist/
   jiis_manuscript.tex   one flattened source file: sections and tables inlined, bibliography pasted in from the .bbl
-  sn-jnl.cls, sn-basic.bst, refs.bib, Fig1.pdf   the other source files, all at the top level (no subfolders)
+  sn-jnl.cls, sn-basic.bst, refs.bib   the other source files, all at the top level (no subfolders)
   latex_source.zip      the files above in one archive
   jiis_manuscript.pdf   compiled from the flattened source
   ESM_1.pdf             Online Resource 1 (supplementary tables and analyses)
@@ -25,7 +25,7 @@ HERE = Path(__file__).resolve().parent
 SRC = HERE / "ChoiceRank"
 DIST = HERE / "dist"
 MAIN = "jiis_manuscript.tex"
-FIGURES = {"figures/reliability.pdf": "Fig1.pdf"}
+FIGURES = {}  # main-text figures as {"figures/x.pdf": "Fig1.pdf"}; the reliability figure is in Online Resource 1
 PAGE_LIMIT = 25  # JIIS: including references, tables, and figures
 INPUT = re.compile(r"\\input\{([^}]+)\}")
 

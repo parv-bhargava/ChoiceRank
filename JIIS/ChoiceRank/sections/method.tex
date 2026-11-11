@@ -9,7 +9,7 @@ All three can be asked in one request (Jeff\kern0pt's server evaluates each ques
 \setlength{\tabcolsep}{3pt}
 \caption{The three typed relevance questions (instructions and option criteria verbatim from our code) and how each answer is read out for ranking. $p_x$: probability of option $x$; $\mathbb{E}[\ell]$: probability-weighted level.}
 \label{tab:questions}
-\begin{tabular}{p{0.9cm}p{4.7cm}p{2.1cm}}
+\begin{tabular}{p{1.5cm}p{8.7cm}p{2.2cm}}
 \toprule
 Format & Question and options & Primary score \\
 \midrule
@@ -31,7 +31,4 @@ The strict readout is $p_\text{rel}$ (C3), $P(\ell\ge2)$ (S4), or $P(\text{yes})
 We assign the lenient readout to TREC-COVID, DBPedia, and News, whose label definitions describe the lowest relevant grade as partial, and the strict readout elsewhere.
 \emph{Disclosure:} this assignment was introduced after we had observed a Choice-3 ECE of 43.9 on TREC-COVID under the strict readout. It is the most favorable readout policy for Jev's Choice-3 answers (mean ECE 14.8, versus 19.2 strict everywhere and 34.8 lenient everywhere); the Noul readout does not depend on it. We therefore lead with Noul and with the strict-everywhere readout in our calibration claims, treat the per-collection policy as a sensitivity analysis, report every Choice-3 and Score-4 system under the strict readout in Table~\ref{tab:calibration} with the policy as marked sensitivity rows, and give both readouts for every collection in Online Resource~1, Table~S2. We separately evaluate source-label transfer grouped by numeric binarization threshold (Experimental Setup, \emph{Metrics and tests}); this grouping does not imply identical relevance semantics or the same adaptation as the readout policy.
 
-\subsection{Ties}
-
-Some decision models report probabilities rounded to two decimals, producing thousands of exact ties per collection.
-To avoid \texttt{trec\_eval}'s document-ID tie-breaking, exact model-score ties use BM25 rank. Choice-3 first adds $10^{-6}p_{\mathrm{rel}}$ to the listed expected-grade score, so ties in primary expected grade are distinguished by strict relevance probability before BM25. This perturbation is part of the cached scoring configuration; the table lists its primary score.
+Exact score ties are broken by BM25 rank (Online Resource~1, \emph{Setup details}).

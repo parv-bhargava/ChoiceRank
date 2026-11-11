@@ -1,10 +1,9 @@
 \begin{table*}[t]
 \centering
 \footnotesize
-\setlength{\tabcolsep}{1.5pt}
+\setlength{\tabcolsep}{4pt}
 \caption{RQ3: answer F1 on the original 1{,}000 ID-disjoint final questions per dataset; MuSiQue component families overlap design splits. Avg.\ $n$: mean number of selected passages (independent of generator). $^\dagger$: Jev significantly better than bge-reranker-v2-m3 under the same policy in the original question-level paired $t$-test (Holm-corrected, $p<0.05$); these tests do not account for family dependence (family-clustered counts are given in the text). $^\ddagger$: Jev significantly better than Qwen3-Reranker-8B under the same policy (same test and correction, added after final results). Displayed policies and ranker-effect comparisons were fixed after separate pilot questions. Thresholds use a readout selected with labelled calibration questions; the $P>0.3$ rows are Platt-scaled.}
 \label{tab:rag}
-\resizebox{\textwidth}{!}{%
 \begin{tabular}{lrrrrrrrr}
 \toprule
  & \multicolumn{3}{c}{MuSiQue} & \multicolumn{3}{c}{NQ} & \multicolumn{2}{c}{Avg.\ $n$} \\
@@ -36,5 +35,5 @@ Gold passages (oracle) & 60.9 & 54.7 & 64.1 & 60.2 & 59.1 & 59.7 & 2.6 & 3.4 \\
 \quad adaptive-$k$ & 30.9 & 27.6 & 33.1 & 50.9 & 49.4 & 50.6 & 3.2 & 10.1 \\
 \quad top-2 $+$ $P>0.3$ & 31.9 & 29.2 & 34.8 & 49.9 & 47.8 & 50.7 & 2.8 & 3.8 \\
 \bottomrule
-\end{tabular}}
+\end{tabular}
 \end{table*}
