@@ -1,0 +1,26 @@
+\begin{table}[tp]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\caption{Relevance judgments for the BM25 top-100 candidates of each collection. Rel.\ grade: minimum grade counted as relevant for binary measures and calibration (nDCG@10 uses all grades with linear gain). Judged non-relevant candidates exist only where the qrels include negatives (the nine calibration collections); elsewhere unjudged candidates are treated as non-relevant, as is standard for BEIR.}
+\label{tab:judged-counts}
+\begin{tabular}{lrrrrr}
+\toprule
+Collection & Rel.\ grade & Candidates & Judged rel. & Judged non-rel. & Unjudged \\
+\midrule
+DL19 & $\ge$2 & 4{,}300 & 846 & 1{,}411 & 2{,}043 \\
+DL20 & $\ge$2 & 5{,}400 & 613 & 2{,}246 & 2{,}541 \\
+DL21 & $\ge$2 & 5{,}300 & 879 & 1{,}907 & 2{,}514 \\
+DL22 & $\ge$2 & 7{,}600 & 596 & 3{,}201 & 3{,}803 \\
+DL23 & $\ge$2 & 8{,}200 & 565 & 2{,}444 & 5{,}191 \\
+TREC-COVID & $\ge$1 & 5{,}000 & 2{,}359 & 1{,}338 & 1{,}303 \\
+NFCorpus & $\ge$1 & 22{,}028 & 2{,}113 & 0 & 19{,}915 \\
+Touche & $\ge$1 & 4{,}900 & 490 & 0 & 4{,}410 \\
+DBPedia & $\ge$1 & 39{,}905 & 3{,}759 & 6{,}447 & 29{,}699 \\
+SciFact & $\ge$1 & 29{,}966 & 314 & 0 & 29{,}652 \\
+Signal & $\ge$1 & 9{,}700 & 709 & 0 & 8{,}991 \\
+News & $\ge$1 & 5{,}700 & 1{,}095 & 1{,}907 & 2{,}698 \\
+Robust04 & $\ge$1 & 24{,}900 & 3{,}770 & 17{,}033 & 4{,}097 \\
+\bottomrule
+\end{tabular}
+\end{table}

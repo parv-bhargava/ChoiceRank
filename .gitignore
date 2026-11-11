@@ -37,3 +37,8 @@ HANDOFF.md
 
 # SAGE upload files (built by SAGE/make_submission.py)
 SAGE/dist/
+
+# JIIS (Springer) upload files (built by JIIS/make_submission.py)
+JIIS/dist/
+JIIS/ChoiceRank/*.log
+JIIS/ChoiceRank/*.blg

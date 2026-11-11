@@ -1,0 +1,77 @@
+% Manuscript for the Journal of Intelligent Information Systems (Springer), Springer Nature LaTeX template (sn-jnl, December 2024).
+% Build: tectonic jiis_manuscript.tex   or   latexmk -pdf jiis_manuscript.tex
+% Upload files (one flattened .tex, no subfolders): python JIIS/make_submission.py -> JIIS/dist/
+% Numbers in tables/ and figures/ are generated: scripts/eval_all.py -> significance.py -> make_tables.py / make_figures.py
+\documentclass[pdflatex,sn-basic,Numbered]{sn-jnl}
+
+\usepackage{graphicx}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{url}
+
+\begin{document}
+
+\title[Typed Decision Models as Passage Rerankers]{Typed Decision Models as Passage Rerankers: Effectiveness, Calibration, and Context Selection}
+
+\author*[1]{\fnm{Parv} \sur{Bhargava}}\email{parv.bhargava@gwu.edu}
+
+\author[2]{\fnm{Aihan} \sur{Liu}}
+
+\author[1]{\fnm{Amir} \sur{Jafari}}
+
+\affil*[1]{\orgdiv{Data Science Program, Columbian College of Arts and Sciences}, \orgname{The George Washington University}, \orgaddress{\street{725 21st St.\ NW}, \city{Washington}, \postcode{20052}, \state{DC}, \country{USA}}}
+
+\affil[2]{\orgdiv{University Libraries}, \orgname{Northwestern University}, \orgaddress{\city{Evanston}, \state{IL}, \country{USA}}}
+
+\abstract{\input{sections/abstract}}
+
+\keywords{reranking, decision models, calibration, retrieval-augmented generation, BEIR}
+
+\maketitle
+
+\input{sections/intro}
+\input{sections/related}
+\input{sections/method}
+\input{sections/experiments}
+\input{sections/results}
+\input{sections/conclusion}
+
+\backmatter
+
+\bmhead{Supplementary information}
+Online Resource~1 contains Supplementary Tables S1--S11 and the supplementary analyses cited in the text.
+
+\section*{Declarations}
+
+\bmhead{Funding}
+The authors received no financial support for the research, authorship, and/or publication of this article. All API costs were paid personally by the first author; no company, including the providers of the evaluated models and OpenRouter, provided credits, payment, or other support.
+
+\bmhead{Competing interests}
+% to be confirmed by each co-author before submission
+The authors have no competing interests to declare that are relevant to the content of this article. None of the authors has a relationship with TypeSafe (Jev), Cloudflare (Clef), firelex (Jeff), ConvAI Innovations (Laya), or OpenRouter.
+
+\bmhead{Ethics approval and consent to participate}
+Not applicable. The study uses only publicly available benchmark collections and their published relevance judgments, and it involved no human participants, personal data, or animals.
+
+\bmhead{Consent for publication}
+Not applicable.
+
+\bmhead{Data availability}
+All collections are publicly distributed and are downloaded automatically by the released code; the underlying Robust04, TREC News, and Signal-1M corpora remain subject to their providers' data agreements. Split IDs, input hashes, and aggregate results are available at \url{https://github.com/parv-bhargava/ChoiceRank}.
+
+\bmhead{Materials availability}
+Not applicable.
+
+\bmhead{Code availability}
+Code and prompts are available at \url{https://github.com/parv-bhargava/ChoiceRank}.
+
+\bmhead{Author contribution}
+% CRediT roles (https://credit.niso.org); to be confirmed by each co-author before submission
+Parv Bhargava: Conceptualization, Methodology, Software, Formal analysis, Investigation, Data curation, Visualization, Writing -- original draft.
+Aihan Liu: Validation, Writing -- review and editing.
+Amir Jafari: Supervision, Methodology, Validation, Writing -- review and editing.
+
+\bibliography{refs}
+
+\end{document}
