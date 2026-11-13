@@ -1,0 +1,39 @@
+\begin{table*}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\caption{RQ3 on the family-disjoint MuSiQue split: answer F1 on the 597 final questions (88\% 2-hop) whose decomposition families share no sub-question with the calibration split or the original pilot. Policies and thresholds are those locked after the original pilot; Platt scaling and Jev's readout are refit on the family-disjoint calibration split. $^\dagger$: Jev significantly better than bge-reranker-v2-m3 under the same policy (family cluster-robust paired $t$-test, Holm-corrected over the nine policies, $p<0.05$; Online Resource~1, Table~S9). $^\ddagger$: Jev significantly better than Qwen3-Reranker-8B under the same policy (same test and correction, added after final results).}
+\label{tab:rag-fd}
+\begin{tabular}{lrrrr}
+\toprule
+ & \multicolumn{3}{c}{MuSiQue} & Avg.\ $n$ \\
+Policy & Qwen2.5-7B & Llama-3.1 & Qwen3-30B &  \\
+\midrule
+No context & 13.5 & 10.4 & 20.2 & 0.0 \\
+All 20 passages & 40.8 & 38.5 & 51.1 & 20.0 \\
+Gold passages (oracle) & 62.0 & 58.7 & 68.6 & 2.1 \\
+\multicolumn{5}{l}{\textit{Jev 1.13}} \\
+\quad top-1 & 39.7$^\dagger$$^\ddagger$ & 33.0$^\dagger$$^\ddagger$ & 42.1$^\dagger$$^\ddagger$ & 1.0 \\
+\quad top-3 & 45.5$^\ddagger$ & 42.3$^\dagger$ & 51.8$^\dagger$ & 3.0 \\
+\quad top-5 & 44.2 & 40.4$^\dagger$ & 51.7 & 5.0 \\
+\quad adaptive-$k$ & 42.6$^\dagger$$^\ddagger$ & 39.1$^\dagger$$^\ddagger$ & 48.9$^\dagger$$^\ddagger$ & 2.3 \\
+\quad $P>0.3$ & 38.2$^\dagger$ & 35.6$^\dagger$ & 44.0$^\dagger$ & 1.7 \\
+\quad top-2 $+$ $P>0.3$ & 44.0$^\dagger$$^\ddagger$ & 40.5$^\dagger$ & 49.8$^\dagger$ & 2.5 \\
+\multicolumn{5}{l}{\textit{bge-reranker-v2-m3}} \\
+\quad top-1 & 22.8 & 20.9 & 28.8 & 1.0 \\
+\quad top-3 & 40.3 & 34.4 & 46.0 & 3.0 \\
+\quad adaptive-$k$ & 30.0 & 27.3 & 36.2 & 3.0 \\
+\quad top-2 $+$ $P>0.3$ & 36.3 & 31.8 & 43.2 & 2.8 \\
+\multicolumn{5}{l}{\textit{Qwen3-Reranker-8B (4-bit)}} \\
+\quad top-1 & 30.0 & 26.7 & 35.7 & 1.0 \\
+\quad top-3 & 39.8 & 38.0 & 46.8 & 3.0 \\
+\quad adaptive-$k$ & 35.2 & 34.0 & 41.9 & 3.4 \\
+\quad top-2 $+$ $P>0.3$ & 39.4 & 37.0 & 47.2 & 3.0 \\
+\multicolumn{5}{l}{\textit{Qwen3-Reranker-0.6B}} \\
+\quad top-1 & 23.8 & 20.9 & 27.8 & 1.0 \\
+\quad top-3 & 35.0 & 32.7 & 41.6 & 3.0 \\
+\quad adaptive-$k$ & 31.6 & 27.8 & 36.8 & 3.2 \\
+\quad top-2 $+$ $P>0.3$ & 33.5 & 29.8 & 37.6 & 2.7 \\
+\bottomrule
+\end{tabular}
+\end{table*}
