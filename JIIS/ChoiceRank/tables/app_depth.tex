@@ -1,0 +1,28 @@
+\begin{table*}[tp]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\caption{nDCG@10 when only the BM25 top-$k$ is reranked (simulated exactly from the pointwise scores; passages below rank $k$ keep their BM25 order). Averages over TREC DL19--23 and BEIR-8. The cost of a pointwise reranker grows linearly with $k$. BM25 alone: DL 39.3, BEIR 43.6.}
+\label{tab:depth}
+\begin{tabular}{lrrrrr|rrrrr}
+\toprule
+ & \multicolumn{5}{c|}{DL19--23} & \multicolumn{5}{c}{BEIR-8} \\
+System & $k$=10 & $k$=20 & $k$=30 & $k$=50 & $k$=100 & 10 & 20 & 30 & 50 & 100 \\
+\midrule
+MiniLM & 43.3 & 50.8 & 53.8 & 56.7 & 59.6 & 44.9 & 46.5 & 46.6 & 46.8 & 47.1 \\
+bge-v2-m3 & 43.7 & 51.6 & 54.6 & 57.8 & 60.6 & 45.9 & 48.4 & 48.7 & 49.3 & 49.3 \\
+Qwen3-Rer.-0.6B & 42.9 & 49.5 & 52.0 & 54.1 & 56.7 & 45.7 & 48.4 & 49.2 & 50.0 & 50.5 \\
+Laya C3 & 41.8 & 46.2 & 46.9 & 48.0 & 47.3 & 43.7 & 43.1 & 41.5 & 39.6 & 37.4 \\
+Jeff Noul & 41.9 & 46.1 & 46.3 & 46.7 & 45.1 & 43.1 & 42.3 & 40.5 & 38.8 & 35.9 \\
+Jev S4 & 44.0 & 51.9 & 55.1 & 58.0 & 61.1 & 46.8 & 50.4 & 51.4 & 52.5 & 53.0 \\
+\midrule
+\multicolumn{11}{l}{\textit{BEIR-8: condensed nDCG$'$@10 (left), Judged@10 in \% (right)}} \\
+MiniLM & 60.8 & 62.3 & 62.9 & 63.6 & 64.2 & 57 & 58 & 57 & 56 & 56 \\
+bge-v2-m3 & 61.2 & 63.4 & 64.1 & 65.1 & 65.7 & 57 & 57 & 57 & 56 & 55 \\
+Qwen3-Rer.-0.6B & 61.4 & 63.8 & 64.9 & 66.0 & 66.9 & 57 & 57 & 57 & 57 & 56 \\
+Laya C3 & 60.4 & 61.5 & 61.7 & 61.9 & 61.9 & 57 & 55 & 53 & 51 & 48 \\
+Jeff Noul & 60.2 & 61.1 & 61.0 & 61.3 & 60.8 & 57 & 55 & 53 & 51 & 48 \\
+Jev S4 & 61.6 & 64.8 & 66.2 & 67.7 & 69.1 & 57 & 58 & 57 & 56 & 56 \\
+\bottomrule
+\end{tabular}
+\end{table*}

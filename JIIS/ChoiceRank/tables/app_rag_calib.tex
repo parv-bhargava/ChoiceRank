@@ -1,0 +1,21 @@
+\begin{table}[tp]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.4pt}
+\caption{Held-out calibration of the RQ3 probabilities on the final candidate pairs (ECE$\times$100, 15 bins; gold supporting or answer-bearing passage as the label). Raw: as returned (cross-encoder logits through a sigmoid). Platt: fit on the calibration split of the same dataset and applied to the final split, as for the threshold policies. Underlined: the Jev readout used for thresholds (chosen by Brier score on the calibration split). FD: family-disjoint MuSiQue (11{,}939 pairs); Orig.: original MuSiQue final split (19{,}988); NQ: 20{,}000. Base rate of relevant pairs: 0.107, 0.133, 0.171.}
+\label{tab:rag-calib}
+\begin{tabular}{lrrrrrr}
+\toprule
+ & \multicolumn{2}{c}{MuSiQue FD} & \multicolumn{2}{c}{MuSiQue Orig.} & \multicolumn{2}{c}{NQ} \\
+\cmidrule(lr){2-3}\cmidrule(lr){4-5}\cmidrule(lr){6-7}
+Ranker & Raw & Platt & Raw & Platt & Raw & Platt \\
+\midrule
+Jev Noul & \underline{3.1} & \underline{3.1} & \underline{5.1} & \underline{3.4} & 10.2 & 1.2 \\
+Jev C3 (strict) & 7.4 & 2.1 & 10.2 & 2.3 & \underline{9.5} & \underline{3.8} \\
+Jev S4 ($\ell\ge2$) & 3.4 & 1.5 & 4.8 & 2.8 & 15.0 & 3.7 \\
+bge-reranker-v2-m3 & 4.7 & 1.3 & 6.7 & 1.4 & 25.3 & 1.4 \\
+Qwen3-Rer.-8B (4-bit) & 5.0 & 1.4 & 6.6 & 1.2 & 17.4 & 1.8 \\
+Qwen3-Rer.-0.6B & 8.1 & 1.8 & 9.3 & 1.6 & 33.9 & 1.5 \\
+\bottomrule
+\end{tabular}
+\end{table}

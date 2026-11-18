@@ -1,0 +1,28 @@
+\begin{table*}[p]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2.6pt}
+\caption{Family-disjoint MuSiQue (597 questions in 270 families): Jev minus bge-reranker-v2-m3 and minus Qwen3-Reranker-8B under each policy, in answer F1 and exact match (EM). $^\ast$: significant in the family cluster-robust paired $t$-test (CR1, 269 degrees of freedom), Holm-corrected over the nine policies within each generator, comparison, and metric; this is the primary MuSiQue test. Question-level tests, family sign-flip tests, and family-bootstrap intervals for every cell, and the same tests on the original split, are in the reproduction repository.}
+\label{tab:rag-family}
+\begin{tabular}{lrrrrrrrrrrrr}
+\toprule
+ & \multicolumn{6}{c}{Jev $-$ bge-reranker-v2-m3} & \multicolumn{6}{c}{Jev $-$ Qwen3-Reranker-8B} \\
+\cmidrule(lr){2-7}\cmidrule(lr){8-13}
+ & \multicolumn{3}{c}{F1} & \multicolumn{3}{c}{EM} & \multicolumn{3}{c}{F1} & \multicolumn{3}{c}{EM} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}\cmidrule(lr){11-13}
+Policy & Qw2.5 & Llama & Qw3 & Qw2.5 & Llama & Qw3 & Qw2.5 & Llama & Qw3 & Qw2.5 & Llama & Qw3 \\
+\midrule
+top-1 & $+$16.9$^\ast$ & $+$12.1$^\ast$ & $+$13.3$^\ast$ & $+$15.1$^\ast$ & $+$9.4$^\ast$ & $+$12.2$^\ast$ & $+$9.7$^\ast$ & $+$6.4$^\ast$ & $+$6.4$^\ast$ & $+$8.7$^\ast$ & $+$4.9$^\ast$ & $+$5.7$^\ast$ \\
+top-2 & $+$7.2$^\ast$ & $+$10.2$^\ast$ & $+$8.1$^\ast$ & $+$5.9 & $+$7.9$^\ast$ & $+$6.9$^\ast$ & $+$4.5$^\ast$ & $+$4.7 & $+$5.1$^\ast$ & $+$3.5 & $+$3.5 & $+$3.2 \\
+top-3 & $+$5.2 & $+$7.8$^\ast$ & $+$5.8$^\ast$ & $+$3.9 & $+$6.9$^\ast$ & $+$6.5$^\ast$ & $+$5.7$^\ast$ & $+$4.3 & $+$4.9 & $+$3.4 & $+$3.0 & $+$4.9 \\
+top-5 & $+$3.6 & $+$3.5$^\ast$ & $+$2.8 & $+$4.4 & $+$4.4$^\ast$ & $+$2.7 & $+$2.8 & $+$2.0 & $+$2.1 & $+$3.4 & $+$2.0 & $+$1.8 \\
+adaptive-$k$ & $+$12.6$^\ast$ & $+$11.8$^\ast$ & $+$12.7$^\ast$ & $+$11.6$^\ast$ & $+$9.5$^\ast$ & $+$12.7$^\ast$ & $+$7.4$^\ast$ & $+$5.1$^\ast$ & $+$7.0$^\ast$ & $+$6.5$^\ast$ & $+$4.2 & $+$6.7$^\ast$ \\
+top-2 $+$ $P>0.3$ & $+$7.7$^\ast$ & $+$8.7$^\ast$ & $+$6.7$^\ast$ & $+$5.9 & $+$6.9$^\ast$ & $+$6.0$^\ast$ & $+$4.6$^\ast$ & $+$3.4 & $+$2.6 & $+$2.7 & $+$2.7 & $+$1.7 \\
+top-2 $+$ $P>0.5$ & $+$7.3$^\ast$ & $+$9.7$^\ast$ & $+$7.7$^\ast$ & $+$6.0 & $+$7.5$^\ast$ & $+$6.5$^\ast$ & $+$5.3$^\ast$ & $+$4.1 & $+$5.1$^\ast$ & $+$4.0 & $+$2.7 & $+$2.8 \\
+$P>0.2$ & $+$6.8$^\ast$ & $+$4.9$^\ast$ & $+$4.3 & $+$5.5 & $+$4.2$^\ast$ & $+$2.8 & $+$3.2 & $+$0.6 & $-$0.2 & $+$2.5 & $+$0.8 & $-$1.0 \\
+$P>0.3$ & $+$7.6$^\ast$ & $+$7.1$^\ast$ & $+$6.4$^\ast$ & $+$6.9$^\ast$ & $+$6.2$^\ast$ & $+$5.2 & $+$3.6 & $+$3.0 & $+$0.1 & $+$2.8 & $+$3.0 & $-$0.7 \\
+\midrule
+Significant & \multicolumn{3}{c}{23/27} & \multicolumn{3}{c}{18/27} & \multicolumn{3}{c}{12/27} & \multicolumn{3}{c}{5/27} \\
+\bottomrule
+\end{tabular}
+\end{table*}
